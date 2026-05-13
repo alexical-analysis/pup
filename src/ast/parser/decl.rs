@@ -1,134 +1,188 @@
-use std::collections::HashMap;
-use std::rc::Rc;
-
-use crate::ast::ast::{Decl, DeclValue, FunctionDecl, ParamExpr};
+use crate::ast::ast::{Decl, DeclValue, FunctionDecl, ModDecl, ParamExpr, TypeDecl, UseDecl};
 use crate::ast::lexer::{Lexer, Token, Ty};
 use crate::ast::parser::Parser;
 
-pub trait DeclParselet {
-    fn parse(&self, parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl;
+fn parse_mod_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl {
+    let name = lexer.next(parser.ctx_mut());
+    if name.ty != Ty::Identifier {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(name, DeclValue::Invalid("function is missing a body"));
+    }
+
+    parser.get_decl(token, DeclValue::Mod(ModDecl { name: name.lexeme }))
 }
 
-pub struct FunctionDeclParselet;
+fn parse_use_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl {
+    let open_paren = lexer.next(parser.ctx_mut());
+    if open_paren.ty != Ty::OpenParen {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(
+            open_paren,
+            DeclValue::Invalid("missing opening paren in use decl"),
+        );
+    }
 
-impl DeclParselet for FunctionDeclParselet {
-    fn parse(&self, parser: &mut Parser, lexer: &mut Lexer, _token: Token) -> Decl {
-        let recover_set = &[
-            Ty::FnKeyword,
-            Ty::UseKeyword,
-            Ty::ModKeyword,
-            Ty::TypeKeyword,
-        ];
-
-        let function_name = lexer.next(parser.ctx_mut());
-        if function_name.ty != Ty::Identifier {
-            lexer.recover_until(parser.module.ctx, recover_set);
-
-            let decl = parser.get_decl(DeclValue::Invalid("function decl is missing a name"));
-            return decl;
-        }
-
-        let open_args = lexer.next(parser.ctx_mut());
-        if open_args.ty != Ty::OpenParen {
-            // eat tokens till we're in a known position again
-            lexer.recover_until(parser.ctx_mut(), recover_set);
-
-            let decl =
-                parser.get_decl(DeclValue::Invalid("function decl is missing an open paren"));
-            return decl;
-        }
-
-        let mut params = vec![];
-
-        loop {
-            let param_name;
-            let param_type;
-
-            let name = lexer.next(parser.ctx_mut());
-            match name.ty {
-                Ty::CloseParen => break,
-                Ty::Eof => {
-                    let decl = parser.get_decl(DeclValue::Invalid(
-                        "function decl is missing a closing paren",
-                    ));
-                    return decl;
-                }
-                Ty::Identifier => param_name = name.lexeme,
-                _ => {
-                    lexer.recover_until(parser.ctx_mut(), recover_set);
-
-                    let decl = parser.get_decl(DeclValue::Invalid(
-                        "function param needs an identifer for a name",
-                    ));
-                    return decl;
-                }
-            }
-
-            let ty = lexer.next(parser.ctx_mut());
-            match ty.ty {
-                Ty::Identifier => param_type = parser.parse_type(ty.lexeme),
-                _ => {
-                    lexer.recover_until(parser.ctx_mut(), recover_set);
-
-                    let decl = parser.get_decl(DeclValue::Invalid("expecting paramater type spec"));
-                    return decl;
-                }
-            }
-
-            let comma = lexer.next(parser.ctx_mut());
-            match comma.ty {
-                Ty::Comma => params.push(ParamExpr {
-                    name: param_name,
-                    ty: param_type,
-                }),
-                Ty::CloseParen => break,
-                _ => {
-                    lexer.recover_until(parser.ctx_mut(), recover_set);
-
-                    let decl = parser
-                        .get_decl(DeclValue::Invalid("paramaters must be separated by commas"));
-                    return decl;
-                }
-            }
-        }
-
-        let return_ty = lexer.peek().clone();
-        let return_ty = match return_ty.ty {
-            Ty::Identifier => {
-                lexer.next(parser.ctx_mut());
-                parser.parse_type(return_ty.lexeme)
-            }
-            Ty::OpenBrace => parser.module.type_unit(),
+    let mut deps = vec![];
+    loop {
+        let next = lexer.next(parser.ctx_mut());
+        match next.ty {
+            Ty::Identifier => deps.push(next.lexeme),
+            Ty::CloseParen => break,
             _ => {
-                lexer.recover_until(parser.ctx_mut(), recover_set);
-
-                let decl = parser.get_decl(DeclValue::Invalid("expecting return type"));
-                return decl;
+                lexer.recover_until_decl(parser.ctx_mut());
+                return parser.get_decl(next, DeclValue::Invalid("invalid token inside use block"));
             }
-        };
+        }
+        let end = lexer.next(parser.ctx_mut());
+        if end.ty != Ty::Semicolon {
+            lexer.recover_until_decl(parser.ctx_mut());
+            return parser.get_decl(
+                end,
+                DeclValue::Invalid("missing semicolon/new line after module name"),
+            );
+        }
+    }
 
-        let open_body = lexer.next(parser.ctx_mut());
-        if open_body.ty != Ty::OpenBrace {
-            lexer.recover_until(parser.ctx_mut(), recover_set);
+    parser.get_decl(token, DeclValue::Use(UseDecl { deps }))
+}
 
-            let decl = parser.get_decl(DeclValue::Invalid("function is missing a body"));
-            return decl;
+fn parse_type_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl {
+    let name = lexer.next(parser.ctx_mut());
+    if name.ty != Ty::Identifier {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(name, DeclValue::Invalid("missing name for type decl"));
+    }
+
+    let ty = lexer.next(parser.ctx_mut());
+    if name.ty != Ty::Identifier {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(name, DeclValue::Invalid("missing type alias"));
+    }
+
+    let ty = parser.parse_type(ty.lexeme);
+
+    parser.get_decl(
+        token,
+        DeclValue::Type(TypeDecl {
+            name: name.lexeme,
+            ty,
+        }),
+    )
+}
+
+fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl {
+    let function_name = lexer.next(parser.ctx_mut());
+    if function_name.ty != Ty::Identifier {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(
+            function_name,
+            DeclValue::Invalid("function decl is missing a name"),
+        );
+    }
+
+    let open_args = lexer.next(parser.ctx_mut());
+    if open_args.ty != Ty::OpenParen {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(
+            open_args,
+            DeclValue::Invalid("function decl is missing an open paren"),
+        );
+    }
+
+    let mut params = vec![];
+
+    loop {
+        let param_name;
+        let param_type;
+
+        let name = lexer.next(parser.ctx_mut());
+        match name.ty {
+            Ty::CloseParen => break,
+            Ty::Eof => {
+                return parser.get_decl(
+                    name,
+                    DeclValue::Invalid("function decl is missing a closing paren"),
+                );
+            }
+            Ty::Identifier => param_name = name.lexeme,
+            _ => {
+                lexer.recover_until_decl(parser.ctx_mut());
+                return parser.get_decl(
+                    name,
+                    DeclValue::Invalid("function param needs an identifer for a name"),
+                );
+            }
         }
 
-        let body = parser.parse_body();
+        let ty = lexer.next(parser.ctx_mut());
+        match ty.ty {
+            Ty::Identifier => {
+                param_type = parser.parse_type(ty.lexeme);
+            }
+            _ => {
+                lexer.recover_until_decl(parser.ctx_mut());
+                return parser.get_decl(ty, DeclValue::Invalid("expecting paramater type spec"));
+            }
+        }
 
-        parser.get_decl(DeclValue::Function(FunctionDecl {
+        let comma = lexer.next(parser.ctx_mut());
+        match comma.ty {
+            Ty::Comma => params.push(ParamExpr {
+                name: param_name,
+                ty: param_type,
+            }),
+            Ty::CloseParen => break,
+            _ => {
+                lexer.recover_until_decl(parser.ctx_mut());
+                return parser.get_decl(
+                    comma,
+                    DeclValue::Invalid("paramaters must be separated by commas"),
+                );
+            }
+        }
+    }
+
+    let return_ty = lexer.peek().clone();
+    let return_ty = match return_ty.ty {
+        Ty::Identifier => {
+            lexer.next(parser.ctx_mut());
+            parser.parse_type(return_ty.lexeme)
+        }
+        Ty::OpenBrace => parser.module.type_unit(),
+        _ => {
+            lexer.recover_until_decl(parser.ctx_mut());
+            return parser.get_decl(return_ty, DeclValue::Invalid("expecting return type"));
+        }
+    };
+
+    let open_body = lexer.next(parser.ctx_mut());
+    if open_body.ty != Ty::OpenBrace {
+        lexer.recover_until_decl(parser.ctx_mut());
+        return parser.get_decl(open_body, DeclValue::Invalid("function is missing a body"));
+    }
+
+    let body = parser.parse_body(lexer);
+
+    parser.get_decl(
+        token,
+        DeclValue::Function(FunctionDecl {
             name: function_name.lexeme,
             params,
             body,
             return_ty,
-        }))
-    }
+        }),
+    )
 }
 
-pub fn new_decl_parselets() -> HashMap<Ty, Rc<dyn DeclParselet>> {
-    let mut parselets: HashMap<Ty, Rc<dyn DeclParselet>> = HashMap::new();
-    parselets.insert(Ty::FnKeyword, Rc::new(FunctionDeclParselet));
-
-    parselets
+pub fn parse_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl {
+    match token.ty {
+        Ty::ModKeyword => parse_mod_decl(parser, lexer, token),
+        Ty::UseKeyword => parse_use_decl(parser, lexer, token),
+        Ty::TypeKeyword => parse_type_decl(parser, lexer, token),
+        Ty::FnKeyword => parse_function_decl(parser, lexer, token),
+        _ => {
+            lexer.recover_until_decl(parser.ctx_mut());
+            parser.get_decl(token, DeclValue::Invalid("unknown declaration type"))
+        }
+    }
 }

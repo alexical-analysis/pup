@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 
-use crate::ast::parser::Module;
+use crate::ast::parser::AstModule;
 use crate::compiler::context::Context;
 
 // the CLI for the Pup programming language
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO: need to actually have this live in the compiler module
             let mut ctx = Context::new();
             // TODO: we should actually be getting to the parser/ ast module through the builder
-            let mut ast_module = Module::new(&mut ctx);
+            let mut ast_module = AstModule::new(&mut ctx);
             let mut parser = ast_module.create_parser();
             parser.parse(
                 r#"mod main

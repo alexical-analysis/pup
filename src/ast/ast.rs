@@ -1,6 +1,7 @@
 use crate::compiler::str_store::MStr;
 use crate::types::unchecked_ty::UncheckedTy;
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Decl(u32);
 
 impl From<usize> for Decl {
@@ -22,7 +23,7 @@ pub struct ModDecl {
 }
 
 pub struct UseDecl {
-    pub name: MStr,
+    pub deps: Vec<MStr>,
 }
 
 pub struct TypeDecl {
@@ -37,6 +38,7 @@ pub struct FunctionDecl {
     pub return_ty: UncheckedTy,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Expr(u32);
 
 impl From<usize> for Expr {

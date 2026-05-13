@@ -1,5 +1,3 @@
-use std::str::Chars;
-
 use crate::compiler::{context::Context, str_store::MStr};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
@@ -23,6 +21,7 @@ pub enum Ty {
     OpenBrace,
     CloseBrace,
     RangeOperator,
+    ModuleOperator,
     Plus,
     Minus,
     Multiply,
@@ -89,6 +88,14 @@ impl Token {
             ty: Ty::RangeOperator,
             pos: Pos(pos as u32),
             lexeme: ctx.get_mstr(".."),
+        }
+    }
+
+    pub fn new_module(ctx: &mut Context, pos: usize) -> Self {
+        Self {
+            ty: Ty::ModuleOperator,
+            pos: Pos(pos as u32),
+            lexeme: ctx.get_mstr("::"),
         }
     }
 
@@ -195,11 +202,29 @@ impl<'s> Lexer<'s> {
         lexer
     }
 
-    /// if the lexer is in a bad spot, this will just eat tokens till we find somewhere safe again
-    pub fn recover_until(&mut self, ctx: &mut Context, safe_set: &[Ty]) {
+    /// if the lexer is in a bad spot, this will just eat tokens till we find the next decl
+    pub fn recover_until_decl(&mut self, ctx: &mut Context) {
         loop {
             let token = self.next(ctx);
-            if safe_set.contains(&token.ty) {
+            if [
+                Ty::FnKeyword,
+                Ty::UseKeyword,
+                Ty::ModKeyword,
+                Ty::TypeKeyword,
+            ]
+            .contains(&token.ty)
+            {
+                break;
+            }
+        }
+    }
+
+    /// if the lexer is in a bad spot, this will just eat tokens till we find the next expression
+    pub fn recover_until_expr(&mut self, ctx: &mut Context) {
+        loop {
+            let token = self.next(ctx);
+            if [Ty::Semicolon, Ty::CloseBrace].contains(&token.ty) {
+                self.next(ctx);
                 break;
             }
         }
@@ -264,6 +289,14 @@ impl<'s> Lexer<'s> {
                     self.bump('.');
                     self.bump('.');
                     Token::new_range(ctx, self.pos)
+                }
+                _ => self.lex_unknown(ctx, ch),
+            },
+            ':' => match self.source.get(self.pos + 1..self.pos + 2) {
+                Some(":") => {
+                    self.bump(':');
+                    self.bump(':');
+                    Token::new_module(ctx, self.pos)
                 }
                 _ => self.lex_unknown(ctx, ch),
             },
