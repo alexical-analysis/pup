@@ -1,4 +1,4 @@
-use crate::ast::ast::{Expr, ExprValue, IdentifierExpr, IfExpr, ReturnExpr};
+use crate::ast::ast::{Expr, ExprValue, IdentifierExpr, IfExpr, LoopExpr, ReturnExpr};
 use crate::ast::lexer::{Lexer, Token, Ty};
 use crate::ast::parser::Parser;
 use crate::ast::parser::infix_expr::Precedence;
@@ -47,27 +47,59 @@ fn parse_if_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
     let open_brace = lexer.next(parser.ctx_mut());
     if open_brace.ty != Ty::OpenBrace {
         lexer.recover_until_expr(parser.ctx_mut());
-        return parser.get_expr(open_brace, ExprValue::Invalid("if expression is missing a body"));
+        return parser.get_expr(
+            open_brace,
+            ExprValue::Invalid("if expression is missing a body"),
+        );
     }
 
     let success = parser.parse_body(lexer);
 
     parser.get_expr(token, ExprValue::If(IfExpr { check, success }))
 }
-// pub struct IfExprParselet;
-// pub struct LoopExprParselet;
-// pub struct RangeExprParselet;
-// pub struct BreakExprParselet;
-// pub struct BinaryExprExprParselet;
-// pub struct IntLiteralExprParselet;
-// pub struct FloatLiteralExprParselet;
-// pub struct BoolLiteralExprParselet;
+
+fn parse_loop_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
+    let open_brace = lexer.next(parser.ctx_mut());
+    if open_brace.ty != Ty::OpenBrace {
+        lexer.recover_until_expr(parser.ctx_mut());
+        return parser.get_expr(
+            open_brace,
+            ExprValue::Invalid("loop expression is missing a body"),
+        );
+    }
+
+    let body = parser.parse_body(lexer);
+
+    parser.get_expr(token, ExprValue::Loop(LoopExpr { body }))
+}
+
+fn parse_int_literal(parser: &mut Parser, token: Token) -> Expr {
+    let s = parser.ctx_mut().get_str(token.lexeme).replace('_', "");
+    match s.parse::<i64>() {
+        Ok(n) => parser.get_expr(token, ExprValue::IntLiteral(n)),
+        Err(_) => parser.get_expr(token, ExprValue::Invalid("invalid integer literal")),
+    }
+}
+
+fn parse_float_literal(parser: &mut Parser, token: Token) -> Expr {
+    let s = parser.ctx_mut().get_str(token.lexeme).replace('_', "");
+    match s.parse::<f64>() {
+        Ok(n) => parser.get_expr(token, ExprValue::FloatLiteral(n)),
+        Err(_) => parser.get_expr(token, ExprValue::Invalid("invalid float literal")),
+    }
+}
 
 pub fn parse_prefix_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
     match token.ty {
         Ty::Identifier => parse_identifier_expr(parser, lexer, token),
         Ty::ReturnKeyword => parse_return_expr(parser, lexer, token),
         Ty::IfKeyword => parse_if_expr(parser, lexer, token),
+        Ty::LoopKeyword => parse_loop_expr(parser, lexer, token),
+        Ty::BreakKeyword => parser.get_expr(token, ExprValue::Break),
+        Ty::Int => parse_int_literal(parser, token),
+        Ty::Float => parse_float_literal(parser, token),
+        Ty::TrueKeyword => parser.get_expr(token, ExprValue::BoolLiteral(true)),
+        Ty::FalseKeyword => parser.get_expr(token, ExprValue::BoolLiteral(false)),
         _ => todo!("parse_prefix_expr"),
     }
 }

@@ -309,11 +309,7 @@ impl<'s> Lexer<'s> {
         let start = self.pos;
         self.bump(ch);
 
-        let mut len = 1;
-
         while let Some(ch) = self.next_char() {
-            len += 1;
-
             // lex untill we find something that could resonably start a new token
             if ch.is_whitespace() {
                 break;
@@ -329,8 +325,7 @@ impl<'s> Lexer<'s> {
             self.bump(ch);
         }
 
-        let end = start + len;
-        let s = &self.source[start..end];
+        let s = &self.source[start..self.pos];
         let lexeme = ctx.get_mstr(s);
 
         Token {
@@ -344,10 +339,7 @@ impl<'s> Lexer<'s> {
         let start = self.pos;
         self.bump(ch);
 
-        let mut len = ch.len_utf8();
         while let Some(ch) = self.next_char() {
-            len += ch.len_utf8();
-
             if !ch.is_alphanumeric() && ch != '_' {
                 break;
             }
@@ -355,9 +347,7 @@ impl<'s> Lexer<'s> {
             self.bump(ch);
         }
 
-        let end = start + len;
-        let s = &self.source[start..end];
-
+        let s = &self.source[start..self.pos];
         self.ident_to_keyword(Pos::from(start), s, ctx)
     }
 
@@ -386,22 +376,18 @@ impl<'s> Lexer<'s> {
         self.bump(ch);
 
         let mut ty = Ty::Int;
-        // safe to use 1 here since digits are always a single byte
-        let mut len = 1;
 
         while let Some(ch) = self.next_char() {
-            // safe to use 1 here since digits are always a single byte
-            len += 1;
-
-            if ch == '.' && ty == Ty::Float {
-                // we found a second '.' since this is already a float, simply return the floating point
-                // number here and let lexer figure out what to do with the next '.'
-                break;
+            if ch == '.' && ty == Ty::Int {
+                // transition to float and consume the '.'
+                ty = Ty::Float;
+                self.bump(ch);
+                continue;
             }
 
-            if ch == '.' && ty == Ty::Int {
-                // we found a '.' so this is actually a floating point number
-                ty = Ty::Float
+            if ch == '.' && ty == Ty::Float {
+                // second '.', stop and let the lexer handle it as a range or unknown
+                break;
             }
 
             if !ch.is_numeric() && ch != '_' {
@@ -411,8 +397,7 @@ impl<'s> Lexer<'s> {
             self.bump(ch);
         }
 
-        let end = start + len;
-        let s = &self.source[start..end];
+        let s = &self.source[start..self.pos];
         let lexeme = ctx.get_mstr(s);
 
         Token {
