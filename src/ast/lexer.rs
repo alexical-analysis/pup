@@ -15,6 +15,7 @@ pub enum Ty {
     ModKeyword,
     UseKeyword,
     InKeyword,
+    ReturnKeyword,
     Comma,
     OpenParen,
     CloseParen,
@@ -276,24 +277,24 @@ impl<'s> Lexer<'s> {
             '<' => Token::new_less_than(ctx, self.bump(ch)),
             ';' => Token::new_semicolon(ctx, self.bump(ch)),
             ',' => Token::new_comma(ctx, self.bump(ch)),
-            '=' => match self.source.get(self.pos + 1..self.pos + 2) {
-                Some("=") => {
+            '=' => match self.nth_char(1) {
+                Some('=') => {
                     self.bump('=');
                     self.bump('=');
                     Token::new_equal_equal(ctx, self.pos)
                 }
                 _ => Token::new_equal(ctx, self.bump(ch)),
             },
-            '.' => match self.source.get(self.pos + 1..self.pos + 2) {
-                Some(".") => {
+            '.' => match self.nth_char(1) {
+                Some('.') => {
                     self.bump('.');
                     self.bump('.');
                     Token::new_range(ctx, self.pos)
                 }
                 _ => self.lex_unknown(ctx, ch),
             },
-            ':' => match self.source.get(self.pos + 1..self.pos + 2) {
-                Some(":") => {
+            ':' => match self.nth_char(1) {
+                Some(':') => {
                     self.bump(':');
                     self.bump(':');
                     Token::new_module(ctx, self.pos)
@@ -372,6 +373,7 @@ impl<'s> Lexer<'s> {
             "in" => Ty::InKeyword,
             "mod" => Ty::ModKeyword,
             "use" => Ty::UseKeyword,
+            "return" => Ty::ReturnKeyword,
             _ => Ty::Identifier,
         };
 
@@ -479,6 +481,10 @@ impl<'s> Lexer<'s> {
 
     fn next_char(&self) -> Option<char> {
         self.source[self.pos..].chars().next()
+    }
+
+    fn nth_char(&self, n: usize) -> Option<char> {
+        self.source[self.pos..].chars().nth(n)
     }
 
     fn can_end_statement(&mut self, ty: Ty) -> bool {

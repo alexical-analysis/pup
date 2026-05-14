@@ -58,7 +58,7 @@ pub enum ExprValue {
     Loop(LoopExpr),
     Range(RangeExpr),
     Break,
-    BinaryExpr,
+    Binary(BinaryExpr),
     IntLiteral(i64),
     FloatLiteral(f64),
     BoolLiteral(bool),
@@ -107,9 +107,10 @@ pub struct BinaryExpr {
     pub right: Expr,
 }
 
+#[derive(Clone, Copy)]
 pub enum Operator {
-    Add,
-    Subtract,
+    Plus,
+    Minus,
     Multiply,
     Divide,
     Equal,

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::ast::ast::{CallExpr, Expr, ExprValue, RangeExpr};
+use crate::ast::ast::{BinaryExpr, CallExpr, Expr, ExprValue, Operator, RangeExpr};
 use crate::ast::lexer::{Lexer, Token, Ty};
 use crate::ast::parser::Parser;
 
@@ -84,7 +84,29 @@ impl InfixExprParselet for RangeExprParselet {
     }
 }
 
-pub struct BinaryExprExprParselet;
+pub struct BinaryExprExprParselet {
+    operator: Operator,
+    precedence: Precedence,
+}
+
+impl InfixExprParselet for BinaryExprExprParselet {
+    fn parse(&self, parser: &mut Parser, lexer: &mut Lexer, left: Expr, token: Token) -> Expr {
+        let right = parser.parse_expr(lexer, Precedence::Base);
+
+        parser.get_expr(
+            token,
+            ExprValue::Binary(BinaryExpr {
+                left,
+                operator: self.operator,
+                right,
+            }),
+        )
+    }
+
+    fn precedence(&self) -> Precedence {
+        self.precedence
+    }
+}
 
 pub fn expr_infix_parselets() -> HashMap<Ty, Rc<dyn InfixExprParselet>> {
     HashMap::from([
@@ -95,6 +117,48 @@ pub fn expr_infix_parselets() -> HashMap<Ty, Rc<dyn InfixExprParselet>> {
         (
             Ty::RangeOperator,
             Rc::new(RangeExprParselet {}) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::Plus,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::Plus,
+                precedence: Precedence::Addition,
+            }) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::Minus,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::Minus,
+                precedence: Precedence::Addition,
+            }) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::Multiply,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::Multiply,
+                precedence: Precedence::Multiplication,
+            }) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::Divide,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::Divide,
+                precedence: Precedence::Multiplication,
+            }) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::EqualEqual,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::Equal,
+                precedence: Precedence::Equality,
+            }) as Rc<dyn InfixExprParselet>,
+        ),
+        (
+            Ty::LessThan,
+            Rc::new(BinaryExprExprParselet {
+                operator: Operator::LessThan,
+                precedence: Precedence::Comparison,
+            }) as Rc<dyn InfixExprParselet>,
         ),
     ])
 }
