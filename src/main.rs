@@ -1,5 +1,6 @@
 mod ast;
 mod compiler;
+mod index_vec;
 mod types;
 
 use std::error::Error;
