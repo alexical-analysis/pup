@@ -1,5 +1,6 @@
 mod ast;
 mod compiler;
+mod hir;
 mod index_vec;
 mod types;
 
@@ -9,7 +10,6 @@ use std::path::{Path, PathBuf};
 
 use clap::{Parser, Subcommand};
 
-use crate::ast::parser::AstModule;
 use crate::compiler::context::Context;
 
 // the CLI for the Pup programming language
@@ -46,15 +46,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             // TODO: need to actually have this live in the compiler module
             let mut ctx = Context::new();
             // TODO: we should actually be getting to the parser/ ast module through the builder
-            let mut ast_module = AstModule::new(&mut ctx);
-            let mut parser = ast_module.create_parser();
-            parser.parse(
-                r#"mod main
-                fn main() {
-                    print("Hello Pup!")
-                }
-            "#,
-            );
+            // let mut ast_module = AstModule::new(&mut ctx);
+            // let mut parser = ast_module.create_parser();
+            // parser.parse(
+            //     r#"mod main
+            //     fn main() {
+            //         print("Hello Pup!")
+            //     }
+            // "#,
+            // );
 
             // TODO: The goal here is that the ast_module is now populated...
         }

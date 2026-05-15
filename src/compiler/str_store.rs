@@ -1,5 +1,6 @@
 use bumpalo::Bump;
 use std::collections::HashMap;
+use std::mem;
 
 /// An interred string that does not own it's underlying data. MStr can be directly compared against
 /// other MStr values for string equality
@@ -31,7 +32,7 @@ impl StrStore {
 
         // SAFETY: Bump allocations live in heap-allocated chunks that never
         // move. We never expose these references beyond the lifetime of `self`.
-        let interned: &'static str = unsafe { std::mem::transmute(self.arena.alloc_str(s)) };
+        let interned: &'static str = unsafe { mem::transmute(self.arena.alloc_str(s)) };
         let idx = self.vec.len() as u32;
         let mstr = MStr(idx);
 

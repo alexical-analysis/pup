@@ -32,12 +32,12 @@ impl InfixExprParselet for CallExprParselet {
         loop {
             let next = lexer.peek().clone();
             if next.ty == Ty::CloseParen {
-                lexer.next(parser.ctx_mut());
+                lexer.next(parser.str_store());
                 break;
             }
 
             if next.ty == Ty::Eof {
-                lexer.recover_until_expr(parser.ctx_mut());
+                lexer.recover_until_expr(parser.str_store());
                 return parser.get_expr(next, ExprValue::Invalid("unclosed argument list"));
             }
 
@@ -47,14 +47,14 @@ impl InfixExprParselet for CallExprParselet {
             let sep = lexer.peek().clone();
             match sep.ty {
                 Ty::Comma => {
-                    lexer.next(parser.ctx_mut());
+                    lexer.next(parser.str_store());
                 }
                 Ty::CloseParen => {
-                    lexer.next(parser.ctx_mut());
+                    lexer.next(parser.str_store());
                     break;
                 }
                 _ => {
-                    lexer.recover_until_expr(parser.ctx_mut());
+                    lexer.recover_until_expr(parser.str_store());
                     return parser.get_expr(
                         sep,
                         ExprValue::Invalid("expected ',' or ')' in argument list"),

@@ -6,7 +6,7 @@ use crate::compiler::ast_store::AstStore;
 use crate::compiler::gen_store::GenStore;
 use crate::compiler::hir_store::HirStore;
 use crate::compiler::mir_store::MirStore;
-use crate::compiler::str_store::StrStore;
+use crate::compiler::str_store::{MStr, StrStore};
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
 pub struct ModuleValue {
@@ -24,7 +24,7 @@ impl ModuleValue {
             ast_store: AstStore::new(),
             hir_store: HirStore::new(),
             mir_store: MirStore::new(),
-            gen_store: todo!(),
+            gen_store: GenStore::new(),
         }
     }
 }
@@ -43,11 +43,11 @@ pub struct AstModule<'s> {
 }
 
 impl<'s> AstModule<'s> {
-    fn get_decl(&mut self, token: Token, decl_value: DeclValue) -> Decl {
+    pub fn get_decl(&mut self, token: Token, decl_value: DeclValue) -> Decl {
         self.ast_store.get_decl(token, decl_value)
     }
 
-    fn get_expr(&mut self, token: Token, expr_value: ExprValue) -> Expr {
+    pub fn get_expr(&mut self, token: Token, expr_value: ExprValue) -> Expr {
         self.ast_store.get_expr(token, expr_value)
     }
 

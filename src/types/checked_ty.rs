@@ -1,5 +1,7 @@
-pub struct CheckedTy(u32);
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+pub struct CheckedTy(pub u32);
 
+#[derive(PartialEq, Eq, Hash)]
 pub enum CheckedTyValue {
     Unit,
     I32,
