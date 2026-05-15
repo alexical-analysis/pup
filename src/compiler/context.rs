@@ -14,7 +14,7 @@ impl Context {
     pub fn new() -> Self {
         Self {
             str_store: StrStore::new(),
-            ty_store: TyStore {},
+            ty_store: TyStore::new(),
             modules: vec![],
         }
     }
