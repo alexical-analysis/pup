@@ -62,6 +62,8 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
                 decls.push(decl);
             }
         }
+
+        // TODO: need to populate deps and module name
     }
 
     fn parse_expr(&mut self, lexer: &mut Lexer, min_precedence: Precedence) -> Expr {
