@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::compiler::module::{AstModule, Module, ModuleValue};
-use crate::compiler::str_store::StrStore;
+use crate::compiler::str_store::{MStr, StrStore};
 use crate::compiler::ty_store::TyStore;
 
 pub struct Context {
@@ -19,12 +19,27 @@ impl Context {
         }
     }
 
+    pub fn get_mstr(&mut self, s: &str) -> MStr {
+        self.str_store.get_mstr(s)
+    }
+
     pub fn create_module(&mut self, path: PathBuf) -> Module {
         let idx = self.modules.len();
         let module_value = ModuleValue::new(path);
         self.modules.push(module_value);
 
         Module::from(idx)
+    }
+
+    pub fn get_module_deps(&self, module: Module) -> &[Module] {
+        todo!("get_module_deps")
+    }
+
+    pub fn get_import_path(&self, module: Module) -> Option<MStr> {
+        match self.modules.get(module.0 as usize) {
+            Some(module) => Some(module.import_path),
+            None => None,
+        }
     }
 
     pub fn get_ast_module<'s>(&'s mut self, module: Module) -> AstModule<'s> {

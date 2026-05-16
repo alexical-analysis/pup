@@ -8,7 +8,7 @@ use std::rc::Rc;
 use crate::ast::ast::{BlockExpr, Decl, Expr};
 use crate::ast::lexer::{Token, Ty};
 use crate::ast::parser::decl::parse_decl;
-use crate::ast::parser::infix_expr::{InfixExprParselet, Precedence};
+use crate::ast::parser::infix_expr::{InfixExprParselet, Precedence, expr_infix_parselets};
 use crate::ast::parser::prefix_expr::parse_prefix_expr;
 use crate::compiler::module::AstModule;
 use crate::compiler::str_store::{MStr, StrStore};
@@ -23,6 +23,13 @@ pub struct Parser<'m, 'ctx> {
 }
 
 impl<'m, 'ctx> Parser<'m, 'ctx> {
+    pub fn new(module: &'m mut AstModule<'ctx>) -> Self {
+        Self {
+            module,
+            infix_parselets: expr_infix_parselets(),
+        }
+    }
+
     pub fn get_decl(&mut self, start: Token, decl: DeclValue) -> Decl {
         self.module.get_decl(start, decl)
     }

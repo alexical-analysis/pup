@@ -1,6 +1,7 @@
-use bumpalo::Bump;
 use std::collections::HashMap;
 use std::mem;
+
+use bumpalo::Bump;
 
 /// An interred string that does not own it's underlying data. MStr can be directly compared against
 /// other MStr values for string equality
