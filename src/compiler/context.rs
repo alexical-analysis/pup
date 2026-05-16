@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use crate::compiler::module::{AstModule, Module, ModuleValue};
 use crate::compiler::str_store::{MStr, StrStore};
 use crate::compiler::ty_store::TyStore;
@@ -23,16 +21,20 @@ impl Context {
         self.str_store.get_mstr(s)
     }
 
-    pub fn create_module(&mut self, path: PathBuf) -> Module {
+    pub fn create_module(&mut self, import_path: MStr) -> Module {
         let idx = self.modules.len();
-        let module_value = ModuleValue::new(path);
+        let module_value = ModuleValue::new(import_path);
         self.modules.push(module_value);
 
         Module::from(idx)
     }
 
     pub fn get_module_deps(&self, module: Module) -> &[Module] {
-        todo!("get_module_deps")
+        &self
+            .modules
+            .get(module.0 as usize)
+            .expect("failed to get module")
+            .deps
     }
 
     pub fn get_import_path(&self, module: Module) -> Option<MStr> {

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use crate::ast::parser::Parser;
 use crate::compiler::context::Context;
-use crate::compiler::module::Module;
+use crate::compiler::module::{Module, ModuleDag};
 
 pub struct File {
     path: PathBuf,
@@ -19,12 +19,18 @@ impl<'ctx> Builder<'ctx> {
         let files = self.get_all_files(root);
         let modules = self.get_all_modules(&files);
 
-        // TODO: build the module DAG
-        // TODO: loop of the modules in the module DAG
-        //     TODO: run the noder on the HirModule
-        //     TODO: run the grapher on the MirModule
-        //     TODO: run codegen on the GenStore
-        //
+        let module_dag = ModuleDag::new(self.ctx, &modules);
+        let import_cycles = module_dag.validate(self.ctx);
+        if !import_cycles.is_empty() {
+            // TODO: need to fold this into an invalid module somehow
+            panic!("found import cycles {:?}", import_cycles)
+        }
+        for module in module_dag.iter(self.ctx) {
+            //     TODO: run the noder on the HirModule
+            //     TODO: run the grapher on the MirModule
+            //     TODO: run codegen on the GenStore
+        }
+
         // TODO: run the linker on the module DAG
     }
 
@@ -69,7 +75,9 @@ impl<'ctx> Builder<'ctx> {
     fn get_all_modules(&mut self, files: &[File]) -> Vec<Module> {
         let mut modules = vec![];
         for file in files {
-            let module = self.ctx.create_module(file.path.clone());
+            let import_path = file.path.to_str().expect("failed to get file path");
+            let import_path = self.ctx.get_mstr(&import_path);
+            let module = self.ctx.create_module(import_path);
             modules.push(module);
 
             let mut ast_module = self.ctx.get_ast_module(module);

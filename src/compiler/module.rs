@@ -1,6 +1,3 @@
-use std::collections::HashSet;
-use std::path::PathBuf;
-
 use crate::ast::ast;
 use crate::ast::lexer::{Pos, Token};
 use crate::compiler::ast_store::AstStore;
@@ -12,13 +9,46 @@ use crate::compiler::str_store::{MStr, StrStore};
 use crate::hir::hir;
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
-pub struct ModuleDag<'ctx> {
-    root: Module,
-    modules: &'ctx [Module],
+#[derive(Debug, Clone)]
+pub struct ImportList {
+    path: Vec<Module>,
 }
 
-impl<'ctx> ModuleDag<'ctx> {
-    fn new(ctx: &'ctx mut Context, modules: &'ctx [Module]) -> Self {
+impl ImportList {
+    fn new(root: Module) -> Self {
+        Self { path: vec![root] }
+    }
+
+    fn push(&mut self, module: Module) {
+        self.path.push(module)
+    }
+
+    fn pop(&mut self) {
+        self.path.pop();
+    }
+
+    fn is_cycle(&self) -> bool {
+        let last = match self.path.last() {
+            Some(last) => last,
+            None => return false,
+        };
+
+        for module in &self.path[..self.path.len() - 1] {
+            if *module == *last {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+pub struct ModuleDag {
+    root: Module,
+}
+
+impl ModuleDag {
+    pub fn new(ctx: &mut Context, modules: &[Module]) -> Self {
         let mut root = None;
         // in pup the root module is always in the main.pup file
         let root_import_path = ctx.get_mstr("main");
@@ -34,13 +64,71 @@ impl<'ctx> ModuleDag<'ctx> {
         }
 
         match root {
-            Some(root) => Self { root, modules },
+            Some(root) => Self { root },
             None => panic!("failed to find root module"),
+        }
+    }
+
+    // returns any ImportLists that are cyclic
+    pub fn validate(&self, ctx: &mut Context) -> Vec<ImportList> {
+        let mut import_list = ImportList {
+            path: vec![self.root],
+        };
+
+        self.find_import_cycles(ctx, &mut import_list)
+    }
+
+    fn find_import_cycles(
+        &self,
+        ctx: &mut Context,
+        import_path: &mut ImportList,
+    ) -> Vec<ImportList> {
+        // check if we're in an import cycle, if we are we can stop recursing and return this as a
+        // cyclical path in the module dag
+        if import_path.is_cycle() {
+            return vec![import_path.clone()];
+        }
+
+        let last = *import_path.path.last().expect("import path is empty");
+
+        let mut cycles = vec![];
+        let deps = ctx.get_module_deps(last).to_vec();
+        for dep in deps {
+            import_path.push(dep);
+            let mut new_cycles = self.find_import_cycles(ctx, import_path);
+            cycles.append(&mut new_cycles);
+            import_path.pop();
+        }
+
+        cycles
+    }
+
+    pub fn iter(&self, ctx: &mut Context) -> ModuleDagIter {
+        let mut stack = vec![self.root];
+        self.build_stack(ctx, &mut stack);
+
+        ModuleDagIter { stack }
+    }
+
+    fn build_stack(&self, ctx: &mut Context, stack: &mut Vec<Module>) {
+        let last = match stack.last() {
+            Some(last) => last,
+            None => return,
+        };
+
+        let deps = ctx.get_module_deps(*last).to_vec();
+        for dep in deps {
+            if stack.contains(&dep) {
+                continue;
+            }
+
+            stack.push(dep);
+            self.build_stack(ctx, stack);
         }
     }
 }
 
-struct ModuleDagIter {
+pub struct ModuleDagIter {
     stack: Vec<Module>,
 }
 
@@ -53,8 +141,9 @@ impl<'a> Iterator for ModuleDagIter {
 }
 
 pub struct ModuleValue {
-    pub name: MStr,
+    pub name: Option<MStr>,
     pub import_path: MStr,
+    pub deps: Vec<Module>,
     pub ast_store: AstStore,
     pub hir_store: HirStore,
     pub mir_store: MirStore,
@@ -62,10 +151,11 @@ pub struct ModuleValue {
 }
 
 impl ModuleValue {
-    pub fn new(import_path: MStr, name: MStr) -> Self {
+    pub fn new(import_path: MStr) -> Self {
         Self {
-            name,
+            name: None,
             import_path,
+            deps: vec![],
             ast_store: AstStore::new(),
             hir_store: HirStore::new(),
             mir_store: MirStore::new(),
@@ -74,7 +164,7 @@ impl ModuleValue {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Module(pub u32);
 
 impl From<usize> for Module {
