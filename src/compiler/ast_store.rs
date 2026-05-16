@@ -1,5 +1,6 @@
-use bumpalo::Bump;
 use std::collections::HashMap;
+
+use bumpalo::Bump;
 
 use crate::ast::ast::{Decl, DeclValue, Expr, ExprValue};
 use crate::ast::lexer::{Pos, Token};

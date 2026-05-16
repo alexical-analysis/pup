@@ -1,4 +1,5 @@
 pub mod ast_store;
+pub mod builder;
 pub mod context;
 pub mod gen_store;
 pub mod hir_store;
