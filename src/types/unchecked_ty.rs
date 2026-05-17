@@ -1,7 +1,14 @@
 use crate::compiler::str_store::MStr;
+use crate::index_vec::Indexer;
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UncheckedTy(u32);
+
+impl Indexer for UncheckedTy {
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 impl From<usize> for UncheckedTy {
     fn from(value: usize) -> Self {

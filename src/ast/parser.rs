@@ -34,6 +34,14 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
         self.module.get_decl(start, decl)
     }
 
+    fn get_decl_value(&self, decl: Decl) -> &DeclValue {
+        self.module.get_decl_value(decl)
+    }
+
+    fn update_decl_value(&mut self, decl: Decl, value: DeclValue) {
+        self.module.update_decl_value(decl, value)
+    }
+
     pub fn get_expr(&mut self, start: Token, expr: ExprValue) -> Expr {
         self.module.get_expr(start, expr)
     }
@@ -63,7 +71,40 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
             }
         }
 
-        // TODO: need to populate deps and module name
+        // make sure the first decl is a module name
+        match decls.first() {
+            Some(decl) => {
+                let decl_value = self.get_decl_value(*decl);
+                if !matches!(decl_value, DeclValue::Mod(_)) {
+                    self.update_decl_value(
+                        *decl,
+                        DeclValue::Invalid("missing module name, first declaration in a file must be a module name decl")
+                    );
+                };
+            }
+            None => {
+                let token = Token::new_eof(self.str_store(), 0);
+                self.get_decl(token, DeclValue::Invalid("missing module name"));
+            }
+        };
+
+        // make sure that after the 2nd decl, use and mod never appear
+        for decl in decls.iter().skip(2) {
+            let decl_value = self.get_decl_value(*decl);
+            match decl_value {
+                DeclValue::Mod(_) => self.update_decl_value(
+                    *decl,
+                    DeclValue::Invalid("module name can only appear as the first decl in a file"),
+                ),
+                DeclValue::Use(_) => self.update_decl_value(
+                    *decl,
+                    DeclValue::Invalid(
+                        "the use block can only appear directly after the module name in a file",
+                    ),
+                ),
+                _ => continue,
+            };
+        }
     }
 
     fn parse_expr(&mut self, lexer: &mut Lexer, min_precedence: Precedence) -> Expr {

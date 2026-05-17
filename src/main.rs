@@ -1,12 +1,16 @@
 mod ast;
+mod codegen;
 mod compiler;
 mod hir;
 mod index_vec;
+mod mir;
 mod types;
 
+use std::env::current_dir;
 use std::error::Error;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Output;
 
 use clap::{Parser, Subcommand};
 
@@ -43,20 +47,18 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match &cli.command {
         Commands::Build { target_dir } => {
-            // TODO: need to actually have this live in the compiler module
-            let mut ctx = Context::new();
-            // TODO: we should actually be getting to the parser/ ast module through the builder
-            // let mut ast_module = AstModule::new(&mut ctx);
-            // let mut parser = ast_module.create_parser();
-            // parser.parse(
-            //     r#"mod main
-            //     fn main() {
-            //         print("Hello Pup!")
-            //     }
-            // "#,
-            // );
+            let root = match target_dir {
+                Some(root) => root.clone(),
+                None => match current_dir() {
+                    Ok(root) => root,
+                    Err(e) => panic!("failed to get target directory {:?}", e),
+                },
+            };
 
-            // TODO: The goal here is that the ast_module is now populated...
+            let mut ctx = Context::new();
+            let mut builder = ctx.create_builder();
+            let mut output_file = fs::File::create("exec")?;
+            builder.compile(root.as_path(), &mut output_file);
         }
         Commands::Init { mod_name } => {
             if Path::new("pup.mod").exists() {

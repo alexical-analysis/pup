@@ -1,4 +1,6 @@
-use crate::ast::ast;
+use std::path::PathBuf;
+
+use crate::ast::ast::{self};
 use crate::ast::lexer::{Pos, Token};
 use crate::compiler::ast_store::AstStore;
 use crate::compiler::context::Context;
@@ -6,7 +8,8 @@ use crate::compiler::gen_store::GenStore;
 use crate::compiler::hir_store::HirStore;
 use crate::compiler::mir_store::MirStore;
 use crate::compiler::str_store::{MStr, StrStore};
-use crate::hir::hir;
+use crate::hir::hir::{self};
+use crate::index_vec::Indexer;
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
 #[derive(Debug, Clone)]
@@ -144,6 +147,7 @@ pub struct ModuleValue {
     pub name: Option<MStr>,
     pub import_path: MStr,
     pub deps: Vec<Module>,
+    pub object_path: Option<PathBuf>,
     pub ast_store: AstStore,
     pub hir_store: HirStore,
     pub mir_store: MirStore,
@@ -156,6 +160,7 @@ impl ModuleValue {
             name: None,
             import_path,
             deps: vec![],
+            object_path: None,
             ast_store: AstStore::new(),
             hir_store: HirStore::new(),
             mir_store: MirStore::new(),
@@ -165,7 +170,13 @@ impl ModuleValue {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Module(pub u32);
+pub struct Module(u32);
+
+impl Indexer for Module {
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 impl From<usize> for Module {
     fn from(value: usize) -> Self {
@@ -181,6 +192,22 @@ pub struct AstModule<'s> {
 impl<'s> AstModule<'s> {
     pub fn get_decl(&mut self, token: Token, decl_value: ast::DeclValue) -> ast::Decl {
         self.ast_store.get_decl(token, decl_value)
+    }
+
+    pub fn get_decl_value(&self, decl: ast::Decl) -> &ast::DeclValue {
+        self.ast_store
+            .decls
+            .get(decl)
+            .expect("failed to find decl value")
+    }
+
+    pub fn update_decl_value(&mut self, decl: ast::Decl, value: ast::DeclValue) {
+        let decl_value = self
+            .ast_store
+            .decls
+            .get_mut(decl)
+            .expect("failed to find decl value");
+        *decl_value = value
     }
 
     pub fn get_expr(&mut self, token: Token, expr_value: ast::ExprValue) -> ast::Expr {
@@ -202,11 +229,45 @@ impl<'s> AstModule<'s> {
     pub fn type_bool(&mut self) -> UncheckedTy {
         self.ast_store.get_ty(&UncheckedTyValue::Bool)
     }
+
+    pub fn get_name(&self) -> MStr {
+        let mod_decl = match self.ast_store.ast.first() {
+            Some(decl) => decl,
+            None => todo!("missing module name"),
+        };
+
+        let decl_value = self
+            .ast_store
+            .decls
+            .get(*mod_decl)
+            .expect("failed to find decl");
+
+        match decl_value {
+            ast::DeclValue::Mod(decl) => decl.name,
+            _ => todo!("first statment must be a module decl name"),
+        }
+    }
+
+    pub fn get_use_decl(&self) -> Option<&ast::UseDecl> {
+        // use decl can only appear as the second decl in a file
+        let use_decl = match self.ast_store.ast.get(1) {
+            Some(decl) => {
+                let decl_value = self.get_decl_value(*decl);
+                match decl_value {
+                    ast::DeclValue::Use(use_decl) => use_decl,
+                    _ => return None,
+                }
+            }
+            None => return None,
+        };
+
+        Some(use_decl)
+    }
 }
 
 pub struct HirModule<'s> {
     pub str_store: &'s mut StrStore,
-    pub ast_store: &'s mut AstStore,
+    pub ast_store: &'s AstStore,
     pub hir_store: &'s mut HirStore,
 }
 
@@ -222,6 +283,13 @@ impl<'s> HirModule<'s> {
 
 pub struct MirModule<'s> {
     pub str_store: &'s mut StrStore,
-    pub hir_store: &'s mut HirStore,
+    pub hir_store: &'s HirStore,
     pub mir_store: &'s mut MirStore,
 }
+
+pub struct GenModule<'s> {
+    pub str_store: &'s mut StrStore,
+    pub hir_store: &'s HirStore,
+}
+
+impl<'s> GenModule<'s> {}
