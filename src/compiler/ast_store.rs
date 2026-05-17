@@ -4,34 +4,35 @@ use bumpalo::Bump;
 
 use crate::ast::ast::{Decl, DeclValue, Expr, ExprValue};
 use crate::ast::lexer::{Pos, Token};
+use crate::index_vec::IndexVec;
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
 pub struct AstStore {
-    decls: Vec<DeclValue>,
+    pub decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    exprs: Vec<ExprValue>,
+    exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
 
     // manage unchecked types
     type_arena: Bump,
     type_map: HashMap<&'static UncheckedTyValue, UncheckedTy>,
-    types: Vec<&'static UncheckedTyValue>,
+    types: IndexVec<UncheckedTy, &'static UncheckedTyValue>,
 
     // the acctual ast produced from parsing
-    ast: Vec<Decl>,
+    pub ast: Vec<Decl>,
 }
 
 impl AstStore {
     pub fn new() -> Self {
         Self {
-            decls: vec![],
+            decls: IndexVec::new(),
             decl_start: HashMap::new(),
-            exprs: vec![],
+            exprs: IndexVec::new(),
             expr_start: HashMap::new(),
             type_arena: Bump::new(),
             type_map: HashMap::new(),
-            types: vec![],
+            types: IndexVec::new(),
             ast: vec![],
         }
     }

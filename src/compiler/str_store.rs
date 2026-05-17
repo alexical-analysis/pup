@@ -3,10 +3,24 @@ use std::mem;
 
 use bumpalo::Bump;
 
+use crate::index_vec::{IndexVec, Indexer};
+
 /// An interred string that does not own it's underlying data. MStr can be directly compared against
 /// other MStr values for string equality
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct MStr(u32);
+
+impl Indexer for MStr {
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl From<usize> for MStr {
+    fn from(value: usize) -> Self {
+        MStr(value as u32)
+    }
+}
 
 /// Converts a normal Rust string into an interred MStr
 pub struct StrStore {
@@ -14,7 +28,7 @@ pub struct StrStore {
     // map as well as the vector
     arena: Bump,
     map: HashMap<&'static str, MStr>,
-    vec: Vec<&'static str>,
+    vec: IndexVec<MStr, &'static str>,
 }
 
 impl StrStore {
@@ -22,7 +36,7 @@ impl StrStore {
         Self {
             arena: Bump::new(),
             map: HashMap::new(),
-            vec: Vec::new(),
+            vec: IndexVec::new(),
         }
     }
 
@@ -44,6 +58,6 @@ impl StrStore {
     }
 
     pub fn get_str(&self, mstr: MStr) -> &str {
-        self.vec[mstr.0 as usize]
+        self.vec.get(mstr).expect("failed to find string ref")
     }
 }

@@ -2,12 +2,13 @@ use std::collections::HashMap;
 
 use crate::ast::lexer::Pos;
 use crate::hir::hir::{Decl, DeclValue, Expr, ExprValue};
+use crate::index_vec::IndexVec;
 
 pub struct HirStore {
-    decls: Vec<DeclValue>,
+    decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    exprs: Vec<ExprValue>,
+    exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
 
     // the acctual ast produced from parsing
@@ -17,9 +18,9 @@ pub struct HirStore {
 impl HirStore {
     pub fn new() -> Self {
         Self {
-            decls: vec![],
+            decls: IndexVec::new(),
             decl_start: HashMap::new(),
-            exprs: vec![],
+            exprs: IndexVec::new(),
             expr_start: HashMap::new(),
             hir: vec![],
         }

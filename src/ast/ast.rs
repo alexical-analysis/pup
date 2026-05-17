@@ -1,8 +1,21 @@
 use crate::compiler::str_store::MStr;
+use crate::index_vec::Indexer;
 use crate::types::unchecked_ty::UncheckedTy;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Decl(u32);
+
+impl Indexer for Decl {
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl Decl {
+    pub fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 impl From<usize> for Decl {
     fn from(value: usize) -> Self {
@@ -38,8 +51,14 @@ pub struct FunctionDecl {
     pub return_ty: UncheckedTy,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Expr(u32);
+
+impl Indexer for Expr {
+    fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
 
 impl From<usize> for Expr {
     fn from(value: usize) -> Self {
