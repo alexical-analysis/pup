@@ -10,7 +10,7 @@ use crate::compiler::mir_store::MirStore;
 use crate::compiler::str_store::{MStr, StrStore};
 use crate::hir::hir::{self};
 use crate::index_vec::Indexer;
-use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
+use crate::types::unchecked_ty::{FunctionType, NamedTy, UncheckedTy, UncheckedTyValue};
 
 #[derive(Debug, Clone)]
 pub struct ImportList {
@@ -214,20 +214,33 @@ impl<'s> AstModule<'s> {
         self.ast_store.get_expr(token, expr_value)
     }
 
+    pub fn type_fn(&mut self, params: Vec<UncheckedTy>, return_ty: UncheckedTy) -> UncheckedTy {
+        self.ast_store
+            .get_ty(UncheckedTyValue::Function(FunctionType {
+                params,
+                return_ty,
+            }))
+    }
+
     pub fn type_i64(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(&UncheckedTyValue::I64)
+        self.ast_store.get_ty(UncheckedTyValue::I64)
     }
 
     pub fn type_f64(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(&UncheckedTyValue::F64)
+        self.ast_store.get_ty(UncheckedTyValue::F64)
     }
 
     pub fn type_unit(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(&UncheckedTyValue::Unit)
+        self.ast_store.get_ty(UncheckedTyValue::Unit)
     }
 
     pub fn type_bool(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(&UncheckedTyValue::Bool)
+        self.ast_store.get_ty(UncheckedTyValue::Bool)
+    }
+
+    pub fn type_named(&mut self, module: Option<MStr>, name: MStr) -> UncheckedTy {
+        self.ast_store
+            .get_ty(UncheckedTyValue::Named(NamedTy { module, name }))
     }
 
     pub fn get_name(&self) -> MStr {

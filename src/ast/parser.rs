@@ -12,7 +12,7 @@ use crate::ast::parser::infix_expr::{InfixExprParselet, Precedence, expr_infix_p
 use crate::ast::parser::prefix_expr::parse_prefix_expr;
 use crate::compiler::module::AstModule;
 use crate::compiler::str_store::{MStr, StrStore};
-use crate::types::unchecked_ty::UncheckedTy;
+use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
 use super::ast::{DeclValue, ExprValue};
 use super::lexer::Lexer;
@@ -28,6 +28,14 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
             module,
             infix_parselets: expr_infix_parselets(),
         }
+    }
+
+    pub fn get_fn_type(
+        &mut self,
+        params: Vec<UncheckedTy>,
+        return_type: UncheckedTy,
+    ) -> UncheckedTy {
+        self.module.type_fn(params, return_type)
     }
 
     pub fn get_decl(&mut self, start: Token, decl: DeclValue) -> Decl {
@@ -163,7 +171,10 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
             "f64" => self.module.type_f64(),
             "none" => self.module.type_unit(),
             "bool" => self.module.type_bool(),
-            _ => todo!("parse_types()"),
+            _ => {
+                // TODO: need to support identifiers with modules
+                self.module.type_named(None, s)
+            }
         }
     }
 

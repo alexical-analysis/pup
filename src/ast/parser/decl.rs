@@ -1,4 +1,4 @@
-use crate::ast::ast::{Decl, DeclValue, FunctionDecl, ModDecl, ParamExpr, TypeDecl, UseDecl};
+use crate::ast::ast::{Decl, DeclValue, FunctionDecl, ModDecl, TypeDecl, UseDecl};
 use crate::ast::lexer::{Lexer, Token, Ty};
 use crate::ast::parser::Parser;
 
@@ -89,11 +89,12 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
         );
     }
 
-    let mut params = vec![];
+    let mut param_names = vec![];
+    let mut param_tys = vec![];
 
     loop {
         let param_name;
-        let param_type;
+        let param_ty;
 
         let name = lexer.next(parser.str_store());
         match name.ty {
@@ -117,7 +118,7 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
         let ty = lexer.next(parser.str_store());
         match ty.ty {
             Ty::Identifier => {
-                param_type = parser.parse_type(ty.lexeme);
+                param_ty = parser.parse_type(ty.lexeme);
             }
             _ => {
                 lexer.recover_until_decl(parser.str_store());
@@ -127,10 +128,10 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
 
         let comma = lexer.next(parser.str_store());
         match comma.ty {
-            Ty::Comma => params.push(ParamExpr {
-                name: param_name,
-                ty: param_type,
-            }),
+            Ty::Comma => {
+                param_names.push(param_name);
+                param_tys.push(param_ty);
+            }
             Ty::CloseParen => break,
             _ => {
                 lexer.recover_until_decl(parser.str_store());
@@ -163,13 +164,14 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
 
     let body = parser.parse_body(lexer);
 
+    let function_ty = parser.get_fn_type(param_tys, return_ty);
     parser.get_decl(
         token,
         DeclValue::Function(FunctionDecl {
             name: function_name.lexeme,
-            params,
+            params: param_names,
             body,
-            return_ty,
+            ty: function_ty,
         }),
     )
 }

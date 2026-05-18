@@ -46,9 +46,9 @@ pub struct TypeDecl {
 
 pub struct FunctionDecl {
     pub name: MStr,
-    pub params: Vec<ParamExpr>,
+    pub params: Vec<MStr>,
     pub body: BlockExpr,
-    pub return_ty: UncheckedTy,
+    pub ty: UncheckedTy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -70,7 +70,6 @@ pub enum ExprValue {
     Invalid(&'static str),
     Identifier(IdentifierExpr),
     Call(CallExpr),
-    Param(ParamExpr),
     Block(BlockExpr),
     Return(ReturnExpr),
     If(IfExpr),
@@ -91,11 +90,6 @@ pub struct IdentifierExpr {
 pub struct CallExpr {
     pub func: Expr,
     pub args: Vec<Expr>,
-}
-
-pub struct ParamExpr {
-    pub name: MStr,
-    pub ty: UncheckedTy,
 }
 
 pub struct BlockExpr {
