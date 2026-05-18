@@ -57,8 +57,8 @@ impl AstStore {
         expr
     }
 
-    pub fn get_ty(&mut self, ty: &UncheckedTyValue) -> UncheckedTy {
-        if let Some(&id) = self.type_map.get(ty) {
+    pub fn get_ty(&mut self, ty: UncheckedTyValue) -> UncheckedTy {
+        if let Some(&id) = self.type_map.get(&ty) {
             return id;
         }
 

@@ -1,7 +1,7 @@
 use crate::compiler::str_store::MStr;
 use crate::index_vec::Indexer;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct UncheckedTy(u32);
 
 impl Indexer for UncheckedTy {
@@ -26,10 +26,17 @@ pub enum UncheckedTyValue {
     F64,
     Bool,
     Named(NamedTy),
+    Function(FunctionType),
 }
 
 #[derive(PartialEq, Eq, Hash)]
 pub struct NamedTy {
     pub module: Option<MStr>,
     pub name: MStr,
+}
+
+#[derive(PartialEq, Eq, Hash)]
+pub struct FunctionType {
+    pub params: Vec<UncheckedTy>,
+    pub return_ty: UncheckedTy,
 }

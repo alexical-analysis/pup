@@ -1,6 +1,10 @@
+mod decl;
+
 use crate::ast::lexer::Pos;
 use crate::compiler::module::HirModule;
 use crate::hir::hir::{Decl, DeclValue, Expr, ExprValue};
+
+use decl::parse_decl;
 
 pub struct Noder<'m, 'ctx> {
     module: &'m mut HirModule<'ctx>,
@@ -19,7 +23,9 @@ impl<'m, 'ctx> Noder<'m, 'ctx> {
         self.module.get_expr(start, expr)
     }
 
-    pub fn node(&self) {
-        todo!("Noder::node()")
+    pub fn node(&mut self) {
+        for decl in self.module.ast_store.ast {
+            decl = parse_decl(self, decl)
+        }
     }
 }
