@@ -40,7 +40,7 @@ impl<'ctx> Builder<'ctx> {
         }
         for module in module_dag.iter(self.ctx) {
             let mut hir_module = self.ctx.get_hir_module(module);
-            let noder = Noder::new(&mut hir_module);
+            let mut noder = Noder::new(&mut hir_module);
             noder.node();
 
             let mut mir_module = self.ctx.get_mir_module(module);

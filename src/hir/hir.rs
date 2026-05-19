@@ -1,3 +1,4 @@
+use crate::compiler::module::Module;
 use crate::compiler::str_store::MStr;
 use crate::index_vec::Indexer;
 use crate::types::checked_ty::CheckedTy;
@@ -20,7 +21,7 @@ impl From<usize> for Decl {
 pub enum DeclValue {
     Invalid(&'static str),
     Type(TypeDecl),
-    Function(FunctionDecl),
+    Func(FuncDecl),
 }
 
 pub struct TypeDecl {
@@ -28,11 +29,11 @@ pub struct TypeDecl {
     pub ty: CheckedTy,
 }
 
-pub struct FunctionDecl {
+pub struct FuncDecl {
     pub name: MStr,
-    pub params: Vec<ParamExpr>,
+    pub params: Vec<MStr>,
     pub body: BlockExpr,
-    pub return_ty: CheckedTy,
+    pub ty: CheckedTy,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -62,12 +63,13 @@ pub enum ExprValue {
     Range(RangeExpr),
     Break,
     Binary(BinaryExpr),
-    // TODO: use ctx interred constants?
-    Constant,
+    IntLiteral(i64),
+    FloatLiteral(f64),
+    BoolLiteral(bool),
 }
 
 pub struct IdentifierExpr {
-    pub module: Option<MStr>,
+    pub module: Module,
     pub name: MStr,
 }
 

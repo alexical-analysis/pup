@@ -1,3 +1,4 @@
+use crate::compiler::module::Module;
 use crate::compiler::str_store::MStr;
 use crate::index_vec::Indexer;
 
@@ -18,24 +19,25 @@ impl From<usize> for CheckedTy {
 
 #[derive(PartialEq, Eq, Hash)]
 pub enum CheckedTyValue {
+    Panic,
     Unit,
     I32,
     I64,
     F32,
     F64,
     Bool,
-    Named(CheckedTy),
-    Function(FunctionType),
+    Named(NamedTy),
+    Func(FuncTy),
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub struct FunctionType {
-    params: Vec<FunctionParam>,
-    return_type: CheckedTy,
+pub struct NamedTy {
+    pub module: Module,
+    pub name: MStr,
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub struct FunctionParam {
-    name: MStr,
-    ty: CheckedTy,
+pub struct FuncTy {
+    pub params: Vec<CheckedTy>,
+    pub return_ty: CheckedTy,
 }

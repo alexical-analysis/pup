@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use crate::compiler::ast_store::AstStore;
 use crate::compiler::builder::Builder;
 use crate::compiler::module::{AstModule, GenModule, HirModule, MirModule, Module, ModuleValue};
 use crate::compiler::str_store::{MStr, StrStore};
@@ -47,12 +49,12 @@ impl Context {
     }
 
     pub fn set_module_deps(&mut self, module: Module, import_paths: &[MStr]) {
-        let mut deps = vec![];
+        let mut deps = HashMap::new();
         for import_path in import_paths {
             let dep = self
                 .find_module(*import_path)
                 .expect("failed to find module import");
-            deps.push(dep)
+            deps.insert(*import_path, dep);
         }
 
         let module = self.modules.get_mut(module).expect("failed to find module");
@@ -73,8 +75,12 @@ impl Context {
         return None;
     }
 
-    pub fn get_module_deps(&self, module: Module) -> &[Module] {
-        &self.modules.get(module).expect("failed to get module").deps
+    pub fn get_module_deps(&self, module: Module) -> HashMap<MStr, Module> {
+        self.modules
+            .get(module)
+            .expect("failed to get module")
+            .deps
+            .clone()
     }
 
     pub fn get_import_path(&self, module: Module) -> Option<MStr> {
@@ -97,9 +103,12 @@ impl Context {
         let module_value = self.modules.get_mut(module).expect("failed to find module");
 
         HirModule {
-            str_store: &mut self.str_store,
+            module: module,
+            deps: &module_value.deps,
             ast_store: &module_value.ast_store,
+            str_store: &mut self.str_store,
             hir_store: &mut module_value.hir_store,
+            ty_store: &mut self.ty_store,
         }
     }
 

@@ -11,7 +11,7 @@ pub struct AstStore {
     pub decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    exprs: IndexVec<Expr, ExprValue>,
+    pub exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
 
     // manage unchecked types
@@ -73,5 +73,23 @@ impl AstStore {
         self.type_map.insert(interned, ty);
 
         ty
+    }
+
+    pub fn get_ty_value(&self, ty: UncheckedTy) -> &UncheckedTyValue {
+        self.types.get(ty).expect("failed to get type")
+    }
+
+    pub fn get_decl_start(&self, decl: Decl) -> Pos {
+        *self
+            .decl_start
+            .get(&decl)
+            .expect("failed to get decl start")
+    }
+
+    pub fn get_expr_start(&self, expr: Expr) -> Pos {
+        *self
+            .expr_start
+            .get(&expr)
+            .expect("failed to get expr start")
     }
 }

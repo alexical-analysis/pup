@@ -26,7 +26,7 @@ pub enum UncheckedTyValue {
     F64,
     Bool,
     Named(NamedTy),
-    Function(FunctionType),
+    Func(FuncTy),
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -36,7 +36,7 @@ pub struct NamedTy {
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub struct FunctionType {
+pub struct FuncTy {
     pub params: Vec<UncheckedTy>,
     pub return_ty: UncheckedTy,
 }
