@@ -47,6 +47,17 @@ impl AstStore {
         decl
     }
 
+    pub fn get_decl_value(&self, decl: Decl) -> &DeclValue {
+        self.decls.get(decl).expect("failed to get decl value")
+    }
+
+    pub fn get_decl_start(&self, decl: Decl) -> Pos {
+        *self
+            .decl_start
+            .get(&decl)
+            .expect("failed to get decl start")
+    }
+
     pub fn get_expr(&mut self, start: Token, expr: ExprValue) -> Expr {
         let idx = self.exprs.len();
         self.exprs.push(expr);
@@ -55,6 +66,17 @@ impl AstStore {
         self.expr_start.insert(expr, start.pos);
 
         expr
+    }
+
+    pub fn get_expr_value(&mut self, expr: Expr) -> &ExprValue {
+        self.exprs.get(expr).expect("failed to get expr value")
+    }
+
+    pub fn get_expr_start(&self, expr: Expr) -> Pos {
+        *self
+            .expr_start
+            .get(&expr)
+            .expect("failed to get expr start")
     }
 
     pub fn get_ty(&mut self, ty: UncheckedTyValue) -> UncheckedTy {
@@ -77,19 +99,5 @@ impl AstStore {
 
     pub fn get_ty_value(&self, ty: UncheckedTy) -> &UncheckedTyValue {
         self.types.get(ty).expect("failed to get type")
-    }
-
-    pub fn get_decl_start(&self, decl: Decl) -> Pos {
-        *self
-            .decl_start
-            .get(&decl)
-            .expect("failed to get decl start")
-    }
-
-    pub fn get_expr_start(&self, expr: Expr) -> Pos {
-        *self
-            .expr_start
-            .get(&expr)
-            .expect("failed to get expr start")
     }
 }

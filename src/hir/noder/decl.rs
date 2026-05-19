@@ -43,12 +43,7 @@ fn node_fn_decl(noder: &mut Noder, start: Pos, decl: &ast::FuncDecl) -> hir::Dec
 
 pub fn parse_decl(noder: &mut Noder, decl: ast::Decl) -> Option<hir::Decl> {
     let start = noder.get_decl_start(decl);
-    let decl_value = noder
-        .module
-        .ast_store
-        .decls
-        .get(decl)
-        .expect("failed to get ast decl value");
+    let decl_value = noder.module.ast_store.get_decl_value(decl);
 
     match decl_value {
         ast::DeclValue::Invalid(v) => Some(node_invalid_decl(noder, start, v)),

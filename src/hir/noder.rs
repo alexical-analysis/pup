@@ -42,6 +42,11 @@ impl<'m, 'ctx> Noder<'m, 'ctx> {
         self.module.ty_store.get_ty(ty)
     }
 
+    pub fn map_ty(&mut self, expr: hir::Expr, ty: CheckedTyValue) {
+        let ty = self.get_ty(ty);
+        self.module.hir_store.map_ty(expr, ty);
+    }
+
     pub fn find_module(&mut self, alias: MStr) -> Module {
         *self
             .module
@@ -56,7 +61,7 @@ impl<'m, 'ctx> Noder<'m, 'ctx> {
         // build the symbol table from the ast for use when building the hir and type checking
         let mut sym_table = SymTable::new();
         for &decl in &self.module.ast_store.ast {
-            sym_table.add_decl(self, decl);
+            sym_table.add_decl(self.module.ast_store, decl);
         }
 
         for decl in &self.module.ast_store.ast {

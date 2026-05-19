@@ -1,10 +1,65 @@
+use crate::hir::hir::{Decl, DeclValue, Expr, ExprValue};
 use crate::hir::noder::Noder;
 use crate::types::checked_ty::{CheckedTy, CheckedTyValue, FuncTy, NamedTy};
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
-pub struct Checker {}
+pub struct Checker {
+    return_ty: CheckedTy,
+}
 
-impl Checker {}
+impl Checker {
+    pub fn new() -> Self {
+        Self {
+            // TODO: this is probably not the right way to do this...
+            return_ty: CheckedTy::from(0),
+        }
+    }
+
+    pub fn check_decl(&self, noder: &mut Noder, decl: Decl) {
+        let decl_value = noder
+            .module
+            .hir_store
+            .decls
+            .get(decl)
+            .expect("failed to find hir decl value");
+
+        match decl_value {
+            DeclValue::Invalid(_) => {}
+            DeclValue::Type(_) => {}
+            DeclValue::Func(v) => {
+                // this clone is needed to prevent the noder borrow from continuing
+                for expr in v.body.exprs.clone() {
+                    self.check_expr(noder, expr);
+                }
+            }
+        }
+    }
+
+    fn check_expr(&self, noder: &mut Noder, expr: Expr) {
+        let expr_value = noder
+            .module
+            .hir_store
+            .exprs
+            .get(expr)
+            .expect("failed to get hir expr value");
+
+        match expr_value {
+            ExprValue::Invalid(_) => noder.map_ty(expr, CheckedTyValue::Panic),
+            ExprValue::Identifier(_) => todo!("check type for identifier expression"),
+            ExprValue::Call(_) => todo!("check type for call expressions"),
+            ExprValue::Block(_) => noder.map_ty(expr, CheckedTyValue::Unit),
+            ExprValue::Return(_) => todo!("check type for return expression"),
+            ExprValue::If(_) => noder.map_ty(expr, CheckedTyValue::Unit),
+            ExprValue::Loop(_) => noder.map_ty(expr, CheckedTyValue::Unit),
+            ExprValue::Range(_) => todo!("check type for range expression"),
+            ExprValue::Break => noder.map_ty(expr, CheckedTyValue::Unit),
+            ExprValue::Binary(_) => todo!("check type for binary expression"),
+            ExprValue::IntLiteral(_) => noder.map_ty(expr, CheckedTyValue::I64),
+            ExprValue::FloatLiteral(_) => noder.map_ty(expr, CheckedTyValue::F64),
+            ExprValue::BoolLiteral(_) => noder.map_ty(expr, CheckedTyValue::Bool),
+        }
+    }
+}
 
 pub fn check_single_type(noder: &mut Noder, ty: UncheckedTy) -> CheckedTy {
     let ty_value = noder.module.ast_store.get_ty_value(ty);

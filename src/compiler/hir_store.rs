@@ -6,10 +6,10 @@ use crate::index_vec::IndexVec;
 use crate::types::checked_ty::CheckedTy;
 
 pub struct HirStore {
-    decls: IndexVec<Decl, DeclValue>,
+    pub decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    exprs: IndexVec<Expr, ExprValue>,
+    pub exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
     ty_map: HashMap<Expr, CheckedTy>,
 
@@ -46,5 +46,9 @@ impl HirStore {
         self.expr_start.insert(expr, start);
 
         expr
+    }
+
+    pub fn map_ty(&mut self, expr: Expr, ty: CheckedTy) {
+        self.ty_map.insert(expr, ty);
     }
 }
