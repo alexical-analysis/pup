@@ -1,6 +1,6 @@
 use crate::ast::ast;
+use crate::compiler::ast_store::AstStore;
 use crate::compiler::str_store::MStr;
-use crate::hir::noder::Noder;
 use crate::index_vec::{IndexVec, Indexer};
 use std::collections::HashMap;
 
@@ -60,10 +60,8 @@ impl SymTable {
         }
     }
 
-    pub fn add_decl(&mut self, noder: &mut Noder, decl: ast::Decl) {
-        let decl_value = noder
-            .module
-            .ast_store
+    pub fn add_decl(&mut self, ast_store: &AstStore, decl: ast::Decl) {
+        let decl_value = ast_store
             .decls
             .get(decl)
             .expect("failed to get ast decl value");
@@ -83,7 +81,7 @@ impl SymTable {
                 self.open_scope();
 
                 for &expr in &v.body.exprs {
-                    self.map_expr_bindings(noder, expr);
+                    self.map_expr_bindings(ast_store, expr);
                 }
 
                 self.close_scope();
@@ -119,10 +117,8 @@ impl SymTable {
             .expect("failed to find scope")
     }
 
-    fn map_expr_bindings(&mut self, noder: &Noder, expr: ast::Expr) {
-        let expr_value = noder
-            .module
-            .ast_store
+    fn map_expr_bindings(&mut self, ast_store: &AstStore, expr: ast::Expr) {
+        let expr_value = ast_store
             .exprs
             .get(expr)
             .expect("failed to get ast expr value");
@@ -131,42 +127,42 @@ impl SymTable {
             ast::ExprValue::Invalid(_) => {}
             ast::ExprValue::Identifier(v) => self.map_binding(expr, v),
             ast::ExprValue::Call(v) => {
-                self.map_expr_bindings(noder, v.func);
+                self.map_expr_bindings(ast_store, v.func);
                 for &arg in &v.args {
-                    self.map_expr_bindings(noder, arg)
+                    self.map_expr_bindings(ast_store, arg)
                 }
             }
             ast::ExprValue::Block(v) => {
                 self.open_scope();
 
                 for &expr in &v.exprs {
-                    self.map_expr_bindings(noder, expr)
+                    self.map_expr_bindings(ast_store, expr)
                 }
 
                 self.close_scope();
             }
             ast::ExprValue::Return(v) => {
-                v.value.map(|v| self.map_expr_bindings(noder, v));
+                v.value.map(|v| self.map_expr_bindings(ast_store, v));
             }
             ast::ExprValue::If(v) => {
-                self.map_expr_bindings(noder, v.check);
+                self.map_expr_bindings(ast_store, v.check);
                 for &expr in &v.success.exprs {
-                    self.map_expr_bindings(noder, expr);
+                    self.map_expr_bindings(ast_store, expr);
                 }
             }
             ast::ExprValue::Loop(v) => {
                 for &expr in &v.body.exprs {
-                    self.map_expr_bindings(noder, expr);
+                    self.map_expr_bindings(ast_store, expr);
                 }
             }
             ast::ExprValue::Range(v) => {
-                self.map_expr_bindings(noder, v.start);
-                self.map_expr_bindings(noder, v.end);
+                self.map_expr_bindings(ast_store, v.start);
+                self.map_expr_bindings(ast_store, v.end);
             }
             ast::ExprValue::Break => {}
             ast::ExprValue::Binary(v) => {
-                self.map_expr_bindings(noder, v.left);
-                self.map_expr_bindings(noder, v.right);
+                self.map_expr_bindings(ast_store, v.left);
+                self.map_expr_bindings(ast_store, v.right);
             }
             ast::ExprValue::IntLiteral(_) => {}
             ast::ExprValue::FloatLiteral(_) => {}
