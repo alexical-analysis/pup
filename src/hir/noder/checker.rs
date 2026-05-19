@@ -2,6 +2,10 @@ use crate::hir::noder::Noder;
 use crate::types::checked_ty::{CheckedTy, CheckedTyValue, FuncTy, NamedTy};
 use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
+pub struct Checker {}
+
+impl Checker {}
+
 pub fn check_single_type(noder: &mut Noder, ty: UncheckedTy) -> CheckedTy {
     let ty_value = noder.module.ast_store.get_ty_value(ty);
     let checked_ty = match &ty_value {

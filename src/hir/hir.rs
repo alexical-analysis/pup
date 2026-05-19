@@ -55,7 +55,6 @@ pub enum ExprValue {
     Invalid(&'static str),
     Identifier(IdentifierExpr),
     Call(CallExpr),
-    Param(ParamExpr),
     Block(BlockExpr),
     Return(ReturnExpr),
     If(IfExpr),
@@ -76,11 +75,6 @@ pub struct IdentifierExpr {
 pub struct CallExpr {
     pub func: Expr,
     pub args: Vec<Expr>,
-}
-
-pub struct ParamExpr {
-    pub name: MStr,
-    pub ty: CheckedTy,
 }
 
 pub struct BlockExpr {

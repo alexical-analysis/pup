@@ -1,12 +1,14 @@
+mod checker;
 mod decl;
 mod expr;
-mod types;
+mod sym_table;
 
 use crate::ast::ast;
 use crate::ast::lexer::Pos;
 use crate::compiler::module::{HirModule, Module};
 use crate::compiler::str_store::MStr;
 use crate::hir::hir;
+use crate::hir::noder::sym_table::SymTable;
 use crate::types::checked_ty::{CheckedTy, CheckedTyValue};
 
 use decl::parse_decl;
@@ -51,6 +53,12 @@ impl<'m, 'ctx> Noder<'m, 'ctx> {
     pub fn node(&mut self) {
         let mut decls = vec![];
 
+        // build the symbol table from the ast for use when building the hir and type checking
+        let mut sym_table = SymTable::new();
+        for &decl in &self.module.ast_store.ast {
+            sym_table.add_decl(self, decl);
+        }
+
         for decl in &self.module.ast_store.ast {
             let decl = match parse_decl(self, *decl) {
                 Some(decl) => decl,
@@ -59,5 +67,7 @@ impl<'m, 'ctx> Noder<'m, 'ctx> {
 
             decls.push(decl);
         }
+
+        // type check all the expressions
     }
 }

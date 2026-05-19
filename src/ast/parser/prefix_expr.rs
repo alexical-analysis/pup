@@ -53,7 +53,7 @@ fn parse_if_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
         );
     }
 
-    let success = parser.parse_body(lexer);
+    let success = parser.parse_block(lexer);
 
     parser.get_expr(token, ExprValue::If(IfExpr { check, success }))
 }
@@ -68,7 +68,7 @@ fn parse_loop_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr
         );
     }
 
-    let body = parser.parse_body(lexer);
+    let body = parser.parse_block(lexer);
 
     parser.get_expr(token, ExprValue::Loop(LoopExpr { body }))
 }
@@ -89,6 +89,11 @@ fn parse_float_literal(parser: &mut Parser, token: Token) -> Expr {
     }
 }
 
+fn parse_block_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
+    let block = parser.parse_block(lexer);
+    parser.get_expr(token, ExprValue::Block(block))
+}
+
 pub fn parse_prefix_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
     match token.ty {
         Ty::Identifier => parse_identifier_expr(parser, lexer, token),
@@ -100,6 +105,7 @@ pub fn parse_prefix_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -
         Ty::Float => parse_float_literal(parser, token),
         Ty::TrueKeyword => parser.get_expr(token, ExprValue::BoolLiteral(true)),
         Ty::FalseKeyword => parser.get_expr(token, ExprValue::BoolLiteral(false)),
+        Ty::OpenBrace => parse_block_expr(parser, lexer, token),
         _ => todo!("parse_prefix_expr"),
     }
 }

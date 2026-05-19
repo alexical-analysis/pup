@@ -282,7 +282,6 @@ pub struct HirModule<'s> {
     pub module: Module,
     pub deps: &'s HashMap<MStr, Module>,
     pub ast_store: &'s AstStore,
-    pub str_store: &'s mut StrStore,
     pub hir_store: &'s mut HirStore,
     pub ty_store: &'s mut TyStore,
 }

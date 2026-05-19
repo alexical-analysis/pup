@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use crate::ast::lexer::Pos;
 use crate::hir::hir::{Decl, DeclValue, Expr, ExprValue};
 use crate::index_vec::IndexVec;
+use crate::types::checked_ty::CheckedTy;
 
 pub struct HirStore {
     decls: IndexVec<Decl, DeclValue>,
@@ -10,8 +11,8 @@ pub struct HirStore {
 
     exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
+    ty_map: HashMap<Expr, CheckedTy>,
 
-    // the acctual ast produced from parsing
     hir: Vec<Decl>,
 }
 
@@ -22,6 +23,7 @@ impl HirStore {
             decl_start: HashMap::new(),
             exprs: IndexVec::new(),
             expr_start: HashMap::new(),
+            ty_map: HashMap::new(),
             hir: vec![],
         }
     }
