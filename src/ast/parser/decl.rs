@@ -1,4 +1,4 @@
-use crate::ast::ast::{Decl, DeclValue, FunctionDecl, ModDecl, TypeDecl, UseDecl};
+use crate::ast::ast::{Decl, DeclValue, FuncDecl, ModDecl, TyDecl, UseDecl};
 use crate::ast::lexer::{Lexer, Token, Ty};
 use crate::ast::parser::Parser;
 
@@ -63,7 +63,7 @@ fn parse_type_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Decl
 
     parser.get_decl(
         token,
-        DeclValue::Type(TypeDecl {
+        DeclValue::Ty(TyDecl {
             name: name.lexeme,
             ty,
         }),
@@ -167,7 +167,7 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
     let function_ty = parser.get_fn_type(param_tys, return_ty);
     parser.get_decl(
         token,
-        DeclValue::Function(FunctionDecl {
+        DeclValue::Func(FuncDecl {
             name: function_name.lexeme,
             params: param_names,
             body,

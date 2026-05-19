@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 
 use crate::ast::ast::{self};
@@ -8,9 +9,11 @@ use crate::compiler::gen_store::GenStore;
 use crate::compiler::hir_store::HirStore;
 use crate::compiler::mir_store::MirStore;
 use crate::compiler::str_store::{MStr, StrStore};
+use crate::compiler::ty_store::TyStore;
 use crate::hir::hir::{self};
 use crate::index_vec::Indexer;
-use crate::types::unchecked_ty::{FunctionType, NamedTy, UncheckedTy, UncheckedTyValue};
+use crate::types::checked_ty::{CheckedTy, CheckedTyValue};
+use crate::types::unchecked_ty::{FuncTy, NamedTy, UncheckedTy, UncheckedTyValue};
 
 #[derive(Debug, Clone)]
 pub struct ImportList {
@@ -95,8 +98,8 @@ impl ModuleDag {
         let last = *import_path.path.last().expect("import path is empty");
 
         let mut cycles = vec![];
-        let deps = ctx.get_module_deps(last).to_vec();
-        for dep in deps {
+        let deps = ctx.get_module_deps(last);
+        for (_, dep) in deps {
             import_path.push(dep);
             let mut new_cycles = self.find_import_cycles(ctx, import_path);
             cycles.append(&mut new_cycles);
@@ -119,8 +122,8 @@ impl ModuleDag {
             None => return,
         };
 
-        let deps = ctx.get_module_deps(*last).to_vec();
-        for dep in deps {
+        let deps = ctx.get_module_deps(*last);
+        for (_, dep) in deps {
             if stack.contains(&dep) {
                 continue;
             }
@@ -146,7 +149,7 @@ impl<'a> Iterator for ModuleDagIter {
 pub struct ModuleValue {
     pub name: Option<MStr>,
     pub import_path: MStr,
-    pub deps: Vec<Module>,
+    pub deps: HashMap<MStr, Module>,
     pub object_path: Option<PathBuf>,
     pub ast_store: AstStore,
     pub hir_store: HirStore,
@@ -159,7 +162,7 @@ impl ModuleValue {
         Self {
             name: None,
             import_path,
-            deps: vec![],
+            deps: HashMap::new(),
             object_path: None,
             ast_store: AstStore::new(),
             hir_store: HirStore::new(),
@@ -169,7 +172,7 @@ impl ModuleValue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Module(u32);
 
 impl Indexer for Module {
@@ -216,10 +219,7 @@ impl<'s> AstModule<'s> {
 
     pub fn type_fn(&mut self, params: Vec<UncheckedTy>, return_ty: UncheckedTy) -> UncheckedTy {
         self.ast_store
-            .get_ty(UncheckedTyValue::Function(FunctionType {
-                params,
-                return_ty,
-            }))
+            .get_ty(UncheckedTyValue::Func(FuncTy { params, return_ty }))
     }
 
     pub fn type_i64(&mut self) -> UncheckedTy {
@@ -279,9 +279,12 @@ impl<'s> AstModule<'s> {
 }
 
 pub struct HirModule<'s> {
-    pub str_store: &'s mut StrStore,
+    pub module: Module,
+    pub deps: &'s HashMap<MStr, Module>,
     pub ast_store: &'s AstStore,
+    pub str_store: &'s mut StrStore,
     pub hir_store: &'s mut HirStore,
+    pub ty_store: &'s mut TyStore,
 }
 
 impl<'s> HirModule<'s> {
@@ -291,6 +294,10 @@ impl<'s> HirModule<'s> {
 
     pub fn get_expr(&mut self, start: Pos, expr: hir::ExprValue) -> hir::Expr {
         self.hir_store.get_expr(start, expr)
+    }
+
+    pub fn get_ty(&mut self, ty: CheckedTyValue) -> CheckedTy {
+        self.ty_store.get_ty(ty)
     }
 }
 

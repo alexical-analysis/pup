@@ -23,28 +23,33 @@ impl From<usize> for Decl {
     }
 }
 
+#[derive(Clone)]
 pub enum DeclValue {
     Invalid(&'static str),
     Mod(ModDecl),
     Use(UseDecl),
-    Type(TypeDecl),
-    Function(FunctionDecl),
+    Ty(TyDecl),
+    Func(FuncDecl),
 }
 
+#[derive(Clone)]
 pub struct ModDecl {
     pub name: MStr,
 }
 
+#[derive(Clone)]
 pub struct UseDecl {
     pub deps: Vec<MStr>,
 }
 
-pub struct TypeDecl {
+#[derive(Clone)]
+pub struct TyDecl {
     pub name: MStr,
     pub ty: UncheckedTy,
 }
 
-pub struct FunctionDecl {
+#[derive(Clone)]
+pub struct FuncDecl {
     pub name: MStr,
     pub params: Vec<MStr>,
     pub body: BlockExpr,
@@ -92,6 +97,7 @@ pub struct CallExpr {
     pub args: Vec<Expr>,
 }
 
+#[derive(Clone)]
 pub struct BlockExpr {
     pub exprs: Vec<Expr>,
 }
