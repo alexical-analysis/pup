@@ -1,7 +1,6 @@
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use crate::compiler::ast_store::AstStore;
 use crate::compiler::builder::Builder;
 use crate::compiler::module::{AstModule, GenModule, HirModule, MirModule, Module, ModuleValue};
 use crate::compiler::str_store::{MStr, StrStore};
@@ -106,7 +105,6 @@ impl Context {
             module: module,
             deps: &module_value.deps,
             ast_store: &module_value.ast_store,
-            str_store: &mut self.str_store,
             hir_store: &mut module_value.hir_store,
             ty_store: &mut self.ty_store,
         }

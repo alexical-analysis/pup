@@ -162,7 +162,7 @@ fn parse_function_decl(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> 
         return parser.get_decl(open_body, DeclValue::Invalid("function is missing a body"));
     }
 
-    let body = parser.parse_body(lexer);
+    let body = parser.parse_block(lexer);
 
     let function_ty = parser.get_fn_type(param_tys, return_ty);
     parser.get_decl(

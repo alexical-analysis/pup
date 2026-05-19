@@ -142,7 +142,7 @@ impl<'m, 'ctx> Parser<'m, 'ctx> {
         left
     }
 
-    fn parse_body(&mut self, lexer: &mut Lexer) -> BlockExpr {
+    fn parse_block(&mut self, lexer: &mut Lexer) -> BlockExpr {
         let mut exprs = vec![];
 
         loop {

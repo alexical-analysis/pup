@@ -2,8 +2,8 @@ use crate::ast::ast;
 use crate::ast::lexer::Pos;
 use crate::hir::hir::{self, TypeDecl};
 use crate::hir::noder::Noder;
+use crate::hir::noder::checker::check_single_type;
 use crate::hir::noder::expr::node_expr;
-use crate::hir::noder::types::check_single_type;
 
 fn node_invalid_decl(noder: &mut Noder, start: Pos, msg: &'static str) -> hir::Decl {
     noder.get_decl(start, hir::DeclValue::Invalid(msg))
@@ -23,9 +23,9 @@ fn node_type_decl(noder: &mut Noder, start: Pos, decl: &ast::TyDecl) -> hir::Dec
 
 fn node_fn_decl(noder: &mut Noder, start: Pos, decl: &ast::FuncDecl) -> hir::Decl {
     let mut exprs = vec![];
-    for e in &decl.body.exprs {
-        let e = node_expr(noder, *e);
-        exprs.push(e);
+    for &e in &decl.body.exprs {
+        let expr = node_expr(noder, e);
+        exprs.push(expr);
     }
 
     let ty = check_single_type(noder, decl.ty);
