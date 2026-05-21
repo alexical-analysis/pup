@@ -2,21 +2,32 @@ use crate::ast::ast;
 use crate::ast::lexer::Pos;
 use crate::hir::hir;
 use crate::hir::noder::Noder;
+use crate::hir::noder::sym_table::SymTable;
 
-fn node_call_expr(noder: &mut Noder, start: Pos, expr: &ast::CallExpr) -> hir::Expr {
-    let func = node_expr(noder, expr.func);
+fn node_call_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::CallExpr,
+) -> hir::Expr {
+    let func = node_expr(noder, sym_table, expr.func);
     let mut args = vec![];
     for &a in &expr.args {
-        let expr = node_expr(noder, a);
+        let expr = node_expr(noder, sym_table, a);
         args.push(expr);
     }
     noder.get_expr(start, hir::ExprValue::Call(hir::CallExpr { func, args }))
 }
 
-fn node_loop_expr(noder: &mut Noder, start: Pos, expr: &ast::LoopExpr) -> hir::Expr {
+fn node_loop_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::LoopExpr,
+) -> hir::Expr {
     let mut exprs = vec![];
     for &e in &expr.body.exprs {
-        exprs.push(node_expr(noder, e));
+        exprs.push(node_expr(noder, sym_table, e));
     }
     noder.get_expr(
         start,
@@ -26,9 +37,14 @@ fn node_loop_expr(noder: &mut Noder, start: Pos, expr: &ast::LoopExpr) -> hir::E
     )
 }
 
-fn node_binary_expr(noder: &mut Noder, start: Pos, expr: &ast::BinaryExpr) -> hir::Expr {
-    let left = node_expr(noder, expr.left);
-    let right = node_expr(noder, expr.right);
+fn node_binary_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::BinaryExpr,
+) -> hir::Expr {
+    let left = node_expr(noder, sym_table, expr.left);
+    let right = node_expr(noder, sym_table, expr.right);
     let operator = match expr.operator {
         ast::Operator::Plus => hir::Operator::Plus,
         ast::Operator::Minus => hir::Operator::Minus,
@@ -39,13 +55,22 @@ fn node_binary_expr(noder: &mut Noder, start: Pos, expr: &ast::BinaryExpr) -> hi
     };
     noder.get_expr(
         start,
-        hir::ExprValue::Binary(hir::BinaryExpr { left, operator, right }),
+        hir::ExprValue::Binary(hir::BinaryExpr {
+            left,
+            operator,
+            right,
+        }),
     )
 }
 
-fn node_range_expr(noder: &mut Noder, start: Pos, expr: &ast::RangeExpr) -> hir::Expr {
-    let start_expr = node_expr(noder, expr.start);
-    let end_expr = node_expr(noder, expr.end);
+fn node_range_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::RangeExpr,
+) -> hir::Expr {
+    let start_expr = node_expr(noder, sym_table, expr.start);
+    let end_expr = node_expr(noder, sym_table, expr.end);
     noder.get_expr(
         start,
         hir::ExprValue::Range(hir::RangeExpr {
@@ -55,11 +80,16 @@ fn node_range_expr(noder: &mut Noder, start: Pos, expr: &ast::RangeExpr) -> hir:
     )
 }
 
-fn node_if_expr(noder: &mut Noder, start: Pos, expr: &ast::IfExpr) -> hir::Expr {
-    let check = node_expr(noder, expr.check);
+fn node_if_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::IfExpr,
+) -> hir::Expr {
+    let check = node_expr(noder, sym_table, expr.check);
     let mut exprs = vec![];
     for &e in &expr.success.exprs {
-        exprs.push(node_expr(noder, e));
+        exprs.push(node_expr(noder, sym_table, e));
     }
     noder.get_expr(
         start,
@@ -70,23 +100,33 @@ fn node_if_expr(noder: &mut Noder, start: Pos, expr: &ast::IfExpr) -> hir::Expr 
     )
 }
 
-fn node_return_expr(noder: &mut Noder, start: Pos, expr: &ast::ReturnExpr) -> hir::Expr {
-    let value = expr.value.map(|e| node_expr(noder, e));
+fn node_return_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::ReturnExpr,
+) -> hir::Expr {
+    let value = expr.value.map(|e| node_expr(noder, sym_table, e));
     noder.get_expr(start, hir::ExprValue::Return(hir::ReturnExpr { value }))
 }
 
-fn node_block_expr(noder: &mut Noder, start: Pos, expr: &ast::BlockExpr) -> hir::Expr {
+fn node_block_expr(
+    noder: &mut Noder,
+    sym_table: &mut SymTable,
+    start: Pos,
+    expr: ast::BlockExpr,
+) -> hir::Expr {
     let mut exprs = vec![];
     for &e in &expr.exprs {
-        exprs.push(node_expr(noder, e));
+        exprs.push(node_expr(noder, sym_table, e));
     }
     noder.get_expr(start, hir::ExprValue::Block(hir::BlockExpr { exprs }))
 }
 
-fn node_identifer_expr(noder: &mut Noder, start: Pos, expr: &ast::IdentifierExpr) -> hir::Expr {
+fn node_identifer_expr(noder: &mut Noder, start: Pos, expr: ast::IdentifierExpr) -> hir::Expr {
     let module = match expr.module {
-        Some(name) => noder.find_module(name),
-        None => noder.module.module,
+        Some(name) => noder.find_dep(name),
+        None => noder.module,
     };
 
     noder.get_expr(
@@ -98,28 +138,34 @@ fn node_identifer_expr(noder: &mut Noder, start: Pos, expr: &ast::IdentifierExpr
     )
 }
 
-pub fn node_expr(noder: &mut Noder, expr: ast::Expr) -> hir::Expr {
+pub fn node_expr(noder: &mut Noder, sym_table: &mut SymTable, expr: ast::Expr) -> hir::Expr {
     let start = noder.get_expr_start(expr);
-    let expr_value = noder
-        .module
-        .ast_store
-        .exprs
-        .get(expr)
-        .expect("failed to get ast expr value");
+    let expr_value = noder.get_ast_expr_value(expr).clone();
 
-    match expr_value {
+    let hir_expr = match expr_value {
         ast::ExprValue::Invalid(v) => noder.get_expr(start, hir::ExprValue::Invalid(v)),
-        ast::ExprValue::Identifier(v) => node_identifer_expr(noder, start, v),
-        ast::ExprValue::Call(v) => node_call_expr(noder, start, v),
-        ast::ExprValue::Block(v) => node_block_expr(noder, start, v),
-        ast::ExprValue::Return(v) => node_return_expr(noder, start, v),
-        ast::ExprValue::If(v) => node_if_expr(noder, start, v),
-        ast::ExprValue::Loop(v) => node_loop_expr(noder, start, v),
-        ast::ExprValue::Range(v) => node_range_expr(noder, start, v),
+        ast::ExprValue::Identifier(v) => {
+            // if this identifier is unknown, node this as invalid
+            if sym_table.is_unknown_identifier(expr) {
+                noder.get_expr(start, hir::ExprValue::Invalid("unknown identifier"))
+            } else {
+                node_identifer_expr(noder, start, v)
+            }
+        }
+        ast::ExprValue::Call(v) => node_call_expr(noder, sym_table, start, v),
+        ast::ExprValue::Block(v) => node_block_expr(noder, sym_table, start, v),
+        ast::ExprValue::Return(v) => node_return_expr(noder, sym_table, start, v),
+        ast::ExprValue::If(v) => node_if_expr(noder, sym_table, start, v),
+        ast::ExprValue::Loop(v) => node_loop_expr(noder, sym_table, start, v),
+        ast::ExprValue::Range(v) => node_range_expr(noder, sym_table, start, v),
         ast::ExprValue::Break => noder.get_expr(start, hir::ExprValue::Break),
-        ast::ExprValue::Binary(v) => node_binary_expr(noder, start, v),
-        ast::ExprValue::IntLiteral(v) => noder.get_expr(start, hir::ExprValue::IntLiteral(*v)),
-        ast::ExprValue::FloatLiteral(v) => noder.get_expr(start, hir::ExprValue::FloatLiteral(*v)),
-        ast::ExprValue::BoolLiteral(v) => noder.get_expr(start, hir::ExprValue::BoolLiteral(*v)),
-    }
+        ast::ExprValue::Binary(v) => node_binary_expr(noder, sym_table, start, v),
+        ast::ExprValue::IntLiteral(v) => noder.get_expr(start, hir::ExprValue::IntLiteral(v)),
+        ast::ExprValue::FloatLiteral(v) => noder.get_expr(start, hir::ExprValue::FloatLiteral(v)),
+        ast::ExprValue::BoolLiteral(v) => noder.get_expr(start, hir::ExprValue::BoolLiteral(v)),
+    };
+
+    sym_table.map_expr(expr, hir_expr);
+
+    hir_expr
 }

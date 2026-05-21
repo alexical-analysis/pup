@@ -1,19 +1,11 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-use crate::ast::ast::{self};
-use crate::ast::lexer::{Pos, Token};
-use crate::compiler::ast_store::AstStore;
+use crate::ast::ast;
 use crate::compiler::context::Context;
-use crate::compiler::gen_store::GenStore;
-use crate::compiler::hir_store::HirStore;
-use crate::compiler::mir_store::MirStore;
-use crate::compiler::str_store::{MStr, StrStore};
-use crate::compiler::ty_store::TyStore;
-use crate::hir::hir::{self};
+use crate::compiler::str_store::MStr;
+use crate::hir::hir;
 use crate::index_vec::Indexer;
-use crate::types::checked_ty::{CheckedTy, CheckedTyValue};
-use crate::types::unchecked_ty::{FuncTy, NamedTy, UncheckedTy, UncheckedTyValue};
 
 #[derive(Debug, Clone)]
 pub struct ImportList {
@@ -59,12 +51,10 @@ impl ModuleDag {
         // in pup the root module is always in the main.pup file
         let root_import_path = ctx.get_mstr("main");
 
-        for module in modules {
-            let import_path = ctx
-                .get_import_path(*module)
-                .expect("failed to get module import path");
+        for &module in modules {
+            let import_path = ctx.get_module_value(module).import_path;
             if import_path == root_import_path {
-                root = Some(*module);
+                root = Some(module);
                 break;
             }
         }
@@ -98,7 +88,7 @@ impl ModuleDag {
         let last = *import_path.path.last().expect("import path is empty");
 
         let mut cycles = vec![];
-        let deps = ctx.get_module_deps(last);
+        let deps = ctx.get_module_value(last).deps.clone();
         for (_, dep) in deps {
             import_path.push(dep);
             let mut new_cycles = self.find_import_cycles(ctx, import_path);
@@ -122,7 +112,7 @@ impl ModuleDag {
             None => return,
         };
 
-        let deps = ctx.get_module_deps(*last);
+        let deps = ctx.get_module_value(*last).deps.clone();
         for (_, dep) in deps {
             if stack.contains(&dep) {
                 continue;
@@ -147,28 +137,40 @@ impl<'a> Iterator for ModuleDagIter {
 }
 
 pub struct ModuleValue {
-    pub name: Option<MStr>,
-    pub import_path: MStr,
+    pub name: MStr,
     pub deps: HashMap<MStr, Module>,
-    pub object_path: Option<PathBuf>,
-    pub ast_store: AstStore,
-    pub hir_store: HirStore,
-    pub mir_store: MirStore,
-    pub gen_store: GenStore,
+    import_path: MStr,
+    object_path: PathBuf,
+    pub ast: Vec<ast::Decl>,
+    pub hir: Vec<hir::Decl>,
 }
 
 impl ModuleValue {
     pub fn new(import_path: MStr) -> Self {
         Self {
-            name: None,
+            // leave the module name the same as the import path by default
+            name: import_path,
             import_path,
             deps: HashMap::new(),
-            object_path: None,
-            ast_store: AstStore::new(),
-            hir_store: HirStore::new(),
-            mir_store: MirStore::new(),
-            gen_store: GenStore::new(),
+            object_path: PathBuf::from("tmp"),
+            ast: vec![],
+            hir: vec![],
         }
+    }
+
+    pub fn get_dep(&self, alias: MStr) -> Module {
+        *self
+            .deps
+            .get(&alias)
+            .expect("failed to get dependent module")
+    }
+
+    pub fn get_import_path(&self) -> MStr {
+        self.import_path
+    }
+
+    pub fn get_object_path(&self) -> &Path {
+        self.object_path.as_path()
     }
 }
 
@@ -186,129 +188,3 @@ impl From<usize> for Module {
         Module(value as u32)
     }
 }
-
-pub struct AstModule<'s> {
-    pub str_store: &'s mut StrStore,
-    pub ast_store: &'s mut AstStore,
-}
-
-impl<'s> AstModule<'s> {
-    pub fn get_decl(&mut self, token: Token, decl_value: ast::DeclValue) -> ast::Decl {
-        self.ast_store.get_decl(token, decl_value)
-    }
-
-    pub fn get_decl_value(&self, decl: ast::Decl) -> &ast::DeclValue {
-        self.ast_store
-            .decls
-            .get(decl)
-            .expect("failed to find decl value")
-    }
-
-    pub fn update_decl_value(&mut self, decl: ast::Decl, value: ast::DeclValue) {
-        let decl_value = self
-            .ast_store
-            .decls
-            .get_mut(decl)
-            .expect("failed to find decl value");
-        *decl_value = value
-    }
-
-    pub fn get_expr(&mut self, token: Token, expr_value: ast::ExprValue) -> ast::Expr {
-        self.ast_store.get_expr(token, expr_value)
-    }
-
-    pub fn type_fn(&mut self, params: Vec<UncheckedTy>, return_ty: UncheckedTy) -> UncheckedTy {
-        self.ast_store
-            .get_ty(UncheckedTyValue::Func(FuncTy { params, return_ty }))
-    }
-
-    pub fn type_i64(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(UncheckedTyValue::I64)
-    }
-
-    pub fn type_f64(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(UncheckedTyValue::F64)
-    }
-
-    pub fn type_unit(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(UncheckedTyValue::Unit)
-    }
-
-    pub fn type_bool(&mut self) -> UncheckedTy {
-        self.ast_store.get_ty(UncheckedTyValue::Bool)
-    }
-
-    pub fn type_named(&mut self, module: Option<MStr>, name: MStr) -> UncheckedTy {
-        self.ast_store
-            .get_ty(UncheckedTyValue::Named(NamedTy { module, name }))
-    }
-
-    pub fn get_name(&self) -> MStr {
-        let mod_decl = match self.ast_store.ast.first() {
-            Some(decl) => decl,
-            None => todo!("missing module name"),
-        };
-
-        let decl_value = self
-            .ast_store
-            .decls
-            .get(*mod_decl)
-            .expect("failed to find decl");
-
-        match decl_value {
-            ast::DeclValue::Mod(decl) => decl.name,
-            _ => todo!("first statment must be a module decl name"),
-        }
-    }
-
-    pub fn get_use_decl(&self) -> Option<&ast::UseDecl> {
-        // use decl can only appear as the second decl in a file
-        let use_decl = match self.ast_store.ast.get(1) {
-            Some(decl) => {
-                let decl_value = self.get_decl_value(*decl);
-                match decl_value {
-                    ast::DeclValue::Use(use_decl) => use_decl,
-                    _ => return None,
-                }
-            }
-            None => return None,
-        };
-
-        Some(use_decl)
-    }
-}
-
-pub struct HirModule<'s> {
-    pub module: Module,
-    pub deps: &'s HashMap<MStr, Module>,
-    pub ast_store: &'s AstStore,
-    pub hir_store: &'s mut HirStore,
-    pub ty_store: &'s mut TyStore,
-}
-
-impl<'s> HirModule<'s> {
-    pub fn get_decl(&mut self, start: Pos, decl: hir::DeclValue) -> hir::Decl {
-        self.hir_store.get_decl(start, decl)
-    }
-
-    pub fn get_expr(&mut self, start: Pos, expr: hir::ExprValue) -> hir::Expr {
-        self.hir_store.get_expr(start, expr)
-    }
-
-    pub fn get_ty(&mut self, ty: CheckedTyValue) -> CheckedTy {
-        self.ty_store.get_ty(ty)
-    }
-}
-
-pub struct MirModule<'s> {
-    pub str_store: &'s mut StrStore,
-    pub hir_store: &'s HirStore,
-    pub mir_store: &'s mut MirStore,
-}
-
-pub struct GenModule<'s> {
-    pub str_store: &'s mut StrStore,
-    pub hir_store: &'s HirStore,
-}
-
-impl<'s> GenModule<'s> {}

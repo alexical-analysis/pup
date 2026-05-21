@@ -17,7 +17,7 @@ impl From<usize> for CheckedTy {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum CheckedTyValue {
     Panic,
     Unit,
@@ -26,17 +26,18 @@ pub enum CheckedTyValue {
     F32,
     F64,
     Bool,
+    Range,
     Named(NamedTy),
     Func(FuncTy),
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct NamedTy {
     pub module: Module,
     pub name: MStr,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FuncTy {
     pub params: Vec<CheckedTy>,
     pub return_ty: CheckedTy,

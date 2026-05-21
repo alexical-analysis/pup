@@ -18,17 +18,20 @@ impl From<usize> for Decl {
     }
 }
 
+#[derive(Clone)]
 pub enum DeclValue {
     Invalid(&'static str),
-    Type(TypeDecl),
+    Ty(TyDecl),
     Func(FuncDecl),
 }
 
-pub struct TypeDecl {
+#[derive(Clone)]
+pub struct TyDecl {
     pub name: MStr,
     pub ty: CheckedTy,
 }
 
+#[derive(Clone)]
 pub struct FuncDecl {
     pub name: MStr,
     pub params: Vec<MStr>,
@@ -51,6 +54,7 @@ impl From<usize> for Expr {
     }
 }
 
+#[derive(Clone)]
 pub enum ExprValue {
     Invalid(&'static str),
     Identifier(IdentifierExpr),
@@ -67,38 +71,46 @@ pub enum ExprValue {
     BoolLiteral(bool),
 }
 
+#[derive(Clone)]
 pub struct IdentifierExpr {
     pub module: Module,
     pub name: MStr,
 }
 
+#[derive(Clone)]
 pub struct CallExpr {
     pub func: Expr,
     pub args: Vec<Expr>,
 }
 
+#[derive(Clone)]
 pub struct BlockExpr {
     pub exprs: Vec<Expr>,
 }
 
+#[derive(Clone)]
 pub struct ReturnExpr {
     pub value: Option<Expr>,
 }
 
+#[derive(Clone)]
 pub struct IfExpr {
     pub check: Expr,
     pub success: BlockExpr,
 }
 
+#[derive(Clone)]
 pub struct LoopExpr {
     pub body: BlockExpr,
 }
 
+#[derive(Clone)]
 pub struct RangeExpr {
     pub start: Expr,
     pub end: Expr,
 }
 
+#[derive(Clone)]
 pub struct BinaryExpr {
     pub left: Expr,
     pub operator: Operator,

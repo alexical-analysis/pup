@@ -6,14 +6,13 @@ use crate::index_vec::IndexVec;
 use crate::types::checked_ty::CheckedTy;
 
 pub struct HirStore {
-    pub decls: IndexVec<Decl, DeclValue>,
+    decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    pub exprs: IndexVec<Expr, ExprValue>,
+    exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
-    ty_map: HashMap<Expr, CheckedTy>,
 
-    hir: Vec<Decl>,
+    ty_map: HashMap<Expr, CheckedTy>,
 }
 
 impl HirStore {
@@ -24,7 +23,6 @@ impl HirStore {
             exprs: IndexVec::new(),
             expr_start: HashMap::new(),
             ty_map: HashMap::new(),
-            hir: vec![],
         }
     }
 
@@ -38,6 +36,10 @@ impl HirStore {
         decl
     }
 
+    pub fn get_decl_value(&self, decl: Decl) -> &DeclValue {
+        self.decls.get(decl).expect("failed to get hir decl")
+    }
+
     pub fn get_expr(&mut self, start: Pos, expr: ExprValue) -> Expr {
         let idx = self.exprs.len();
         self.exprs.push(expr);
@@ -46,6 +48,17 @@ impl HirStore {
         self.expr_start.insert(expr, start);
 
         expr
+    }
+
+    pub fn get_expr_value(&self, expr: Expr) -> &ExprValue {
+        self.exprs.get(expr).expect("failed to get hir expr")
+    }
+
+    pub fn get_expr_ty(&self, expr: Expr) -> CheckedTy {
+        *self
+            .ty_map
+            .get(&expr)
+            .expect("failed to get type for expression")
     }
 
     pub fn map_ty(&mut self, expr: Expr, ty: CheckedTy) {

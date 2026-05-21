@@ -1,8 +1,4 @@
-use crate::compiler::{
-    context::Context,
-    module::AstModule,
-    str_store::{self, MStr, StrStore},
-};
+use crate::compiler::str_store::{MStr, StrStore};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Ty {

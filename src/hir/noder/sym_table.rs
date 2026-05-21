@@ -1,6 +1,7 @@
 use crate::ast::ast;
 use crate::compiler::ast_store::AstStore;
 use crate::compiler::str_store::MStr;
+use crate::hir::hir;
 use crate::index_vec::{IndexVec, Indexer};
 use std::collections::HashMap;
 
@@ -44,6 +45,8 @@ pub struct SymTable {
     current_scope: Scope,
     scopes: IndexVec<Scope, ScopeValue>,
     ident_map: HashMap<ast::Expr, ast::Decl>,
+    expr_map: HashMap<ast::Expr, hir::Expr>,
+    decl_map: HashMap<ast::Decl, hir::Decl>,
     uknown_idents: Vec<ast::Expr>,
 }
 
@@ -56,16 +59,14 @@ impl SymTable {
             current_scope: Scope::from(0),
             scopes,
             ident_map: HashMap::new(),
+            expr_map: HashMap::new(),
+            decl_map: HashMap::new(),
             uknown_idents: vec![],
         }
     }
 
     pub fn add_decl(&mut self, ast_store: &AstStore, decl: ast::Decl) {
-        let decl_value = ast_store
-            .decls
-            .get(decl)
-            .expect("failed to get ast decl value");
-
+        let decl_value = ast_store.get_decl_value(decl);
         let current_scope = self.get_current_scope_vaue_mut();
 
         match decl_value {
@@ -118,10 +119,7 @@ impl SymTable {
     }
 
     fn map_expr_bindings(&mut self, ast_store: &AstStore, expr: ast::Expr) {
-        let expr_value = ast_store
-            .exprs
-            .get(expr)
-            .expect("failed to get ast expr value");
+        let expr_value = ast_store.get_expr_value(expr);
 
         match expr_value {
             ast::ExprValue::Invalid(_) => {}
@@ -170,6 +168,14 @@ impl SymTable {
         }
     }
 
+    pub fn map_decl(&mut self, ast_decl: ast::Decl, hir_decl: hir::Decl) {
+        self.decl_map.insert(ast_decl, hir_decl);
+    }
+
+    pub fn map_expr(&mut self, ast_expr: ast::Expr, hir_expr: hir::Expr) {
+        self.expr_map.insert(ast_expr, hir_expr);
+    }
+
     fn map_binding(&mut self, expr: ast::Expr, ident: &ast::IdentifierExpr) {
         if ident.module.is_some() {
             panic!("identifier is not referencing this module")
@@ -192,5 +198,20 @@ impl SymTable {
                 None => None,
             },
         }
+    }
+
+    pub fn get_ident_map(&self) -> HashMap<hir::Expr, hir::Decl> {
+        let mut ident_map = HashMap::new();
+        for (expr, decl) in &self.ident_map {
+            let &hir_decl = self.decl_map.get(decl).expect("");
+            let &hir_expr = self.expr_map.get(expr).expect("");
+            ident_map.insert(hir_expr, hir_decl);
+        }
+
+        ident_map
+    }
+
+    pub fn is_unknown_identifier(&self, expr: ast::Expr) -> bool {
+        self.uknown_idents.contains(&expr)
     }
 }

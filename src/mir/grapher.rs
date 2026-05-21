@@ -1,15 +1,20 @@
-use crate::compiler::module::MirModule;
+use crate::compiler::context::Context;
+use crate::compiler::module::{Module, ModuleValue};
 
-pub struct Grapher<'m, 'ctx> {
-    module: &'m mut MirModule<'ctx>,
+pub struct Grapher<'ctx> {
+    module: Module,
+    module_value: &'ctx ModuleValue,
 }
 
-impl<'m, 'ctx> Grapher<'m, 'ctx> {
-    pub fn new(module: &'m mut MirModule<'ctx>) -> Self {
-        Self { module }
+impl<'ctx> Grapher<'ctx> {
+    pub fn new(ctx: &'ctx mut Context, module: Module) -> Self {
+        Self {
+            module,
+            module_value: ctx.module_store.get(module).expect("failed to find module"),
+        }
     }
 
-    pub fn graph(&self) {
+    pub fn graph(&mut self) {
         todo!("Grapher::graph()")
     }
 }

@@ -1,26 +1,15 @@
 use std::collections::HashMap;
 
-use bumpalo::Bump;
-
 use crate::ast::ast::{Decl, DeclValue, Expr, ExprValue};
 use crate::ast::lexer::{Pos, Token};
 use crate::index_vec::IndexVec;
-use crate::types::unchecked_ty::{UncheckedTy, UncheckedTyValue};
 
 pub struct AstStore {
-    pub decls: IndexVec<Decl, DeclValue>,
+    decls: IndexVec<Decl, DeclValue>,
     decl_start: HashMap<Decl, Pos>,
 
-    pub exprs: IndexVec<Expr, ExprValue>,
+    exprs: IndexVec<Expr, ExprValue>,
     expr_start: HashMap<Expr, Pos>,
-
-    // manage unchecked types
-    type_arena: Bump,
-    type_map: HashMap<&'static UncheckedTyValue, UncheckedTy>,
-    types: IndexVec<UncheckedTy, &'static UncheckedTyValue>,
-
-    // the acctual ast produced from parsing
-    pub ast: Vec<Decl>,
 }
 
 impl AstStore {
@@ -30,10 +19,6 @@ impl AstStore {
             decl_start: HashMap::new(),
             exprs: IndexVec::new(),
             expr_start: HashMap::new(),
-            type_arena: Bump::new(),
-            type_map: HashMap::new(),
-            types: IndexVec::new(),
-            ast: vec![],
         }
     }
 
@@ -49,6 +34,11 @@ impl AstStore {
 
     pub fn get_decl_value(&self, decl: Decl) -> &DeclValue {
         self.decls.get(decl).expect("failed to get decl value")
+    }
+
+    pub fn set_decl_value(&mut self, decl: Decl, value: DeclValue) {
+        let decl_value = self.decls.get_mut(decl).expect("failed to get decl value");
+        *decl_value = value
     }
 
     pub fn get_decl_start(&self, decl: Decl) -> Pos {
@@ -68,7 +58,7 @@ impl AstStore {
         expr
     }
 
-    pub fn get_expr_value(&mut self, expr: Expr) -> &ExprValue {
+    pub fn get_expr_value(&self, expr: Expr) -> &ExprValue {
         self.exprs.get(expr).expect("failed to get expr value")
     }
 
@@ -77,27 +67,5 @@ impl AstStore {
             .expr_start
             .get(&expr)
             .expect("failed to get expr start")
-    }
-
-    pub fn get_ty(&mut self, ty: UncheckedTyValue) -> UncheckedTy {
-        if let Some(&id) = self.type_map.get(&ty) {
-            return id;
-        }
-
-        // SAFETY: Bump allocations live in heap-allocated chunks that never
-        // move. We never expose these references beyond the lifetime of `self`.
-        let interned: &'static UncheckedTyValue =
-            unsafe { std::mem::transmute(self.type_arena.alloc(ty)) };
-        let idx = self.types.len();
-        let ty = UncheckedTy::from(idx);
-
-        self.types.push(interned);
-        self.type_map.insert(interned, ty);
-
-        ty
-    }
-
-    pub fn get_ty_value(&self, ty: UncheckedTy) -> &UncheckedTyValue {
-        self.types.get(ty).expect("failed to get type")
     }
 }
