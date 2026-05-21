@@ -4,12 +4,8 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-use crate::ast::parser::Parser;
-use crate::codegen::generator::Generator;
 use crate::compiler::context::Context;
 use crate::compiler::module::{Module, ModuleDag};
-use crate::hir::noder::Noder;
-use crate::mir::grapher::Grapher;
 
 pub struct File {
     path: PathBuf,
@@ -39,16 +35,17 @@ impl<'ctx> Builder<'ctx> {
             )
         }
         for module in module_dag.iter(self.ctx) {
-            let mut hir_module = self.ctx.get_hir_module(module);
-            let mut noder = Noder::new(&mut hir_module);
+            let mut noder = self.ctx.create_noder(module);
             noder.node();
 
-            let mut mir_module = self.ctx.get_mir_module(module);
-            let grapher = Grapher::new(&mut mir_module);
+            // let mut mir_module = self.ctx.get_mir_module(module);
+            // let grapher = Grapher::new(&mut mir_module);
+            let mut grapher = self.ctx.create_grapher(module);
             grapher.graph();
 
-            let mut gen_module = self.ctx.get_gen_module(module);
-            let generator = Generator::new(&mut gen_module);
+            // let mut gen_module = self.ctx.get_gen_module(module);
+            // let generator = Generator::new(&mut gen_module);
+            let mut generator = self.ctx.create_generator(module);
             generator.codegen();
         }
 
@@ -91,27 +88,25 @@ impl<'ctx> Builder<'ctx> {
     /// reads, lexes and parses all the files and returns a list of module for each file
     fn get_all_modules(&mut self, files: &[File]) -> Vec<Module> {
         let mut modules = vec![];
+
+        // first parser all the files so we populate the ast and get the modules name
         for file in files {
             let import_path = file.path.to_str().expect("failed to get file path");
             let import_path = self.ctx.get_mstr(&import_path);
             let module = self.ctx.create_module(import_path);
             modules.push(module);
 
-            let mut ast_module = self.ctx.get_ast_module(module);
-            let mut parser = Parser::new(&mut ast_module);
+            // let mut ast_module = self.ctx.get_ast_module(module);
+            let mut parser = self.ctx.create_parser(module); // Parser::new(&mut ast_module);
             parser.parse(&file.source);
+        }
 
-            // Update the module metadata based on the file we just parsed
-            let name = ast_module.get_name();
-            self.ctx.set_module_name(module, name);
-
-            let ast_module = self.ctx.get_ast_module(module);
-            let import_paths = match ast_module.get_use_decl() {
-                Some(use_decl) => use_decl.deps.clone(),
-                None => continue,
-            };
-
-            self.ctx.set_module_deps(module, &import_paths);
+        // now that all the files have been parsed we can get all the dependencies set up
+        let module_map = self.ctx.module_map();
+        for &module in &modules {
+            // create a new parser since it's fairly cheep and that way we don't run into borrow issues
+            let mut parser = self.ctx.create_parser(module);
+            parser.set_deps(&module_map);
         }
 
         modules

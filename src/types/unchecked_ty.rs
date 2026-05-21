@@ -16,7 +16,7 @@ impl From<usize> for UncheckedTy {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub enum UncheckedTyValue {
     Panic,
     Unit,
@@ -29,13 +29,13 @@ pub enum UncheckedTyValue {
     Func(FuncTy),
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct NamedTy {
     pub module: Option<MStr>,
     pub name: MStr,
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct FuncTy {
     pub params: Vec<UncheckedTy>,
     pub return_ty: UncheckedTy,

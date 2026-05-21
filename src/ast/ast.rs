@@ -11,12 +11,6 @@ impl Indexer for Decl {
     }
 }
 
-impl Decl {
-    pub fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
 impl From<usize> for Decl {
     fn from(value: usize) -> Self {
         Decl(value as u32)
@@ -71,6 +65,7 @@ impl From<usize> for Expr {
     }
 }
 
+#[derive(Clone)]
 pub enum ExprValue {
     Invalid(&'static str),
     Identifier(IdentifierExpr),
@@ -87,11 +82,13 @@ pub enum ExprValue {
     BoolLiteral(bool),
 }
 
+#[derive(Clone)]
 pub struct IdentifierExpr {
     pub module: Option<MStr>,
     pub name: MStr,
 }
 
+#[derive(Clone)]
 pub struct CallExpr {
     pub func: Expr,
     pub args: Vec<Expr>,
@@ -102,24 +99,29 @@ pub struct BlockExpr {
     pub exprs: Vec<Expr>,
 }
 
+#[derive(Clone)]
 pub struct ReturnExpr {
     pub value: Option<Expr>,
 }
 
+#[derive(Clone)]
 pub struct IfExpr {
     pub check: Expr,
     pub success: BlockExpr,
 }
 
+#[derive(Clone)]
 pub struct LoopExpr {
     pub body: BlockExpr,
 }
 
+#[derive(Clone)]
 pub struct RangeExpr {
     pub start: Expr,
     pub end: Expr,
 }
 
+#[derive(Clone)]
 pub struct BinaryExpr {
     pub left: Expr,
     pub operator: Operator,

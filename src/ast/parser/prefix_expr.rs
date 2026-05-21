@@ -15,10 +15,10 @@ fn parse_identifier_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -
         );
     }
 
-    lexer.next(parser.str_store());
-    let ident_name = lexer.next(parser.str_store());
+    lexer.next(parser.str_store);
+    let ident_name = lexer.next(parser.str_store);
     if ident_name.ty != Ty::Identifier {
-        lexer.recover_until_expr(parser.str_store());
+        lexer.recover_until_expr(parser.str_store);
 
         return parser.get_expr(ident_name, ExprValue::Invalid(""));
     }
@@ -44,9 +44,9 @@ fn parse_return_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Ex
 fn parse_if_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
     let check = parser.parse_expr(lexer, Precedence::Base);
 
-    let open_brace = lexer.next(parser.str_store());
+    let open_brace = lexer.next(parser.str_store);
     if open_brace.ty != Ty::OpenBrace {
-        lexer.recover_until_expr(parser.str_store());
+        lexer.recover_until_expr(parser.str_store);
         return parser.get_expr(
             open_brace,
             ExprValue::Invalid("if expression is missing a body"),
@@ -59,9 +59,9 @@ fn parse_if_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
 }
 
 fn parse_loop_expr(parser: &mut Parser, lexer: &mut Lexer, token: Token) -> Expr {
-    let open_brace = lexer.next(parser.str_store());
+    let open_brace = lexer.next(parser.str_store);
     if open_brace.ty != Ty::OpenBrace {
-        lexer.recover_until_expr(parser.str_store());
+        lexer.recover_until_expr(parser.str_store);
         return parser.get_expr(
             open_brace,
             ExprValue::Invalid("loop expression is missing a body"),

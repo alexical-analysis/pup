@@ -54,4 +54,9 @@ impl<I: Indexer, V> IndexVec<I, V> {
     pub fn iter(&self) -> Iter<'_, V> {
         self.data.iter()
     }
+
+    /// Enumerate over all values.
+    pub fn iter_enumerated(&self) -> impl Iterator<Item = (I, &V)> {
+        self.data.iter().enumerate().map(|(i, v)| (I::from(i), v))
+    }
 }
