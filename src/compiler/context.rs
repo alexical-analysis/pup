@@ -6,6 +6,7 @@ use crate::codegen::generator::Generator;
 use crate::compiler::ast_store::AstStore;
 use crate::compiler::builder::Builder;
 use crate::compiler::hir_store::HirStore;
+use crate::compiler::mir_store::MirStore;
 use crate::compiler::module::{Module, ModuleValue};
 use crate::compiler::str_store::{MStr, StrStore};
 use crate::compiler::ty_store::{CheckedTyStore, UncheckedTyStore};
@@ -19,6 +20,7 @@ pub struct Context {
     pub unchecked_ty_store: UncheckedTyStore,
     pub ast_store: AstStore,
     pub hir_store: HirStore,
+    pub mir_store: MirStore,
     pub module_store: IndexVec<Module, ModuleValue>,
 }
 
@@ -30,6 +32,7 @@ impl Context {
             unchecked_ty_store: UncheckedTyStore::new(),
             ast_store: AstStore::new(),
             hir_store: HirStore::new(),
+            mir_store: MirStore::new(),
             module_store: IndexVec::new(),
         }
     }
@@ -79,16 +82,6 @@ impl Context {
         self.module_store
             .get(module)
             .expect("failed to find module value")
-    }
-
-    pub fn find_module(&self, import_path: MStr) -> Option<Module> {
-        for (idx, module) in self.module_store.iter().enumerate() {
-            if module.get_import_path() == import_path {
-                let module = Module::from(idx);
-                return Some(module);
-            }
-        }
-        return None;
     }
 
     pub fn get_object_files(&self) -> Vec<&Path> {
