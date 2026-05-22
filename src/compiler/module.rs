@@ -6,6 +6,7 @@ use crate::compiler::context::Context;
 use crate::compiler::str_store::MStr;
 use crate::hir::hir;
 use crate::index_vec::Indexer;
+use crate::mir::mir::Func;
 
 #[derive(Debug, Clone)]
 pub struct ImportList {
@@ -143,6 +144,7 @@ pub struct ModuleValue {
     object_path: PathBuf,
     pub ast: Vec<ast::Decl>,
     pub hir: Vec<hir::Decl>,
+    pub funcs: Vec<Func>,
 }
 
 impl ModuleValue {
@@ -155,6 +157,7 @@ impl ModuleValue {
             object_path: PathBuf::from("tmp"),
             ast: vec![],
             hir: vec![],
+            funcs: vec![],
         }
     }
 
